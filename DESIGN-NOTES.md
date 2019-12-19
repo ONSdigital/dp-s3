@@ -1,3 +1,3 @@
 # Design Notes
 
-The code in the dp-vault repository provides an interface to vault.
+The code in the dp-s3 repository provides an interface to S3.
