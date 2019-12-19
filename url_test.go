@@ -1,9 +1,10 @@
-package s3_test
+package s3client_test
 
 import (
-	"github.com/ONSdigital/go-ns/s3"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+
+	s3 "github.com/ONSdigital/dp-s3"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestSpec(t *testing.T) {
