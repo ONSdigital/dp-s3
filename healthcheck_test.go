@@ -23,32 +23,32 @@ const (
 	InexistentRegion = "atlantida-north-1"
 )
 
-// msgWrongRegion - message returned when we try to get a bucket with the wrong region
+// msgWrongRegion is the message returned when we try to get a bucket with the wrong region
 func msgWrongRegion(region, bucketName string) string {
 	return fmt.Sprintf("Get https://s3-%s.amazonaws.com/%s/: 301 response missing Location header", region, bucketName)
 }
 
-// msgInexistentRegion - message returned when we try to get a bucket with an inexistent region
+// msgInexistentRegion is the message returned when we try to get a bucket with an inexistent region
 func msgInexistentRegion(bucketName string) string {
 	return fmt.Sprintf("Get /%s/: unsupported protocol scheme \"\"", bucketName)
 }
 
-// bucketExists - mock function for requests for existing buckets
+// bucketExists is the mock function for requests for existing buckets
 func bucketExists(bucketName, path string) (io.ReadCloser, error) {
 	return ioutil.NopCloser(strings.NewReader("MockReadCloser")), nil
 }
 
-// bukcetDoesNotExist - mock function for requests with inexistent regions
-func bukcetDoesNotExist(bucketName, path string) (io.ReadCloser, error) {
+// bucketDoesNotExist is the mock function for requests with inexistent regions
+func bucketDoesNotExist(bucketName, path string) (io.ReadCloser, error) {
 	return nil, s3client.ErrBucketDoesNotExist
 }
 
-// bucketWrongRegion - mock function for requests with wrong region for bucket
+// bucketWrongRegion is the mock function for requests with wrong region for bucket
 func bucketWrongRegion(bucketName, path string) (io.ReadCloser, error) {
 	return nil, errors.New(msgWrongRegion(UnexpectedRegion, bucketName))
 }
 
-// bucketInexistentRegion - mock function for requests with inexistent region
+// bucketInexistentRegion is the mock function for requests with inexistent region
 func bucketInexistentRegion(bucketName, path string) (io.ReadCloser, error) {
 	return nil, errors.New(msgInexistentRegion(bucketName))
 }
@@ -74,7 +74,7 @@ func TestBucketDoesNotExist(t *testing.T) {
 	Convey("Given that S3 client is available and bucket does not exist", t, func() {
 
 		var s3AmzCli = &mock.AmzClientMock{
-			GetBucketReaderFunc: bukcetDoesNotExist,
+			GetBucketReaderFunc: bucketDoesNotExist,
 		}
 		s3Cli := &s3client.S3{
 			s3AmzCli,

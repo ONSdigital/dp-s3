@@ -11,7 +11,7 @@ import (
 // ServiceName S3
 const ServiceName = "S3"
 
-// MsgHealthy Check message returned when S3 is healthy
+// MsgHealthy is the message in the Check structure when S3 is healthy
 const MsgHealthy = "S3 is healthy"
 
 // Error definitions
@@ -19,10 +19,10 @@ var (
 	ErrBucketDoesNotExist = errors.New("The specified bucket does not exist")
 )
 
-// minTime : Oldest time for Check structure.
+// minTime is the oldest time for Check structure.
 var minTime = time.Unix(0, 0)
 
-// Checker : Check health of S3 and return it inside a Check structure
+// Checker performs a check health of S3 and returns it inside a Check structure
 func (s3 *S3) Checker(ctx *context.Context, bucketName string) (*health.Check, error) {
 	reader, err := s3.Get("s3://" + bucketName)
 	if err != nil {
@@ -32,7 +32,7 @@ func (s3 *S3) Checker(ctx *context.Context, bucketName string) (*health.Check, e
 	return getCheck(ctx, health.StatusOK, MsgHealthy), nil
 }
 
-// getCheck : Create a Check structure and populate it according to status and message provided
+// getCheck creates a Check structure and populates it according to status and message provided
 func getCheck(ctx *context.Context, status, message string) *health.Check {
 
 	currentTime := time.Now().UTC()
