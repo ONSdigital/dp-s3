@@ -3,7 +3,7 @@ module github.com/ONSdigital/dp-s3
 go 1.12
 
 require (
-	github.com/ONSdigital/dp-healthcheck v0.0.0-20191218093917-b10c00bc4439
+	github.com/ONSdigital/dp-healthcheck v0.0.0-20200115183048-4eeccfeaf78a
 	github.com/goamz/goamz v0.0.0-20180131231218-8b901b531db8
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/smartystreets/goconvey v1.6.4
