@@ -56,16 +56,14 @@ func bucketInexistentRegion(bucketName, path string) (io.ReadCloser, error) {
 func TestBucketOk(t *testing.T) {
 	Convey("Given that S3 client is available, bucket exists and it was created in the same region as the S3 client config", t, func() {
 
-		var s3AmzCli = &mock.AmzClientMock{
+		s3AmzCliMock := &mock.AmzClientMock{
 			GetBucketReaderFunc: bucketExists,
 		}
-		s3Cli := &s3client.S3{
-			s3AmzCli,
-		}
+		s3Cli := s3client.NewWithClient(s3AmzCliMock)
 
 		Convey("Checker returns a successful Check structure", func() {
 			validateSuccessfulCheck(s3Cli, ExistingBucket)
-			So(len(s3AmzCli.GetBucketReaderCalls()), ShouldEqual, 1)
+			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
 		})
 	})
 }
@@ -73,17 +71,15 @@ func TestBucketOk(t *testing.T) {
 func TestBucketDoesNotExist(t *testing.T) {
 	Convey("Given that S3 client is available and bucket does not exist", t, func() {
 
-		var s3AmzCli = &mock.AmzClientMock{
+		s3AmzCliMock := &mock.AmzClientMock{
 			GetBucketReaderFunc: bucketDoesNotExist,
 		}
-		s3Cli := &s3client.S3{
-			s3AmzCli,
-		}
+		s3Cli := s3client.NewWithClient(s3AmzCliMock)
 
 		Convey("Checker returns a critical Check structure with the relevant error message", func() {
 			_, err := validateCriticalCheck(s3Cli, InexistentBucket, 500, s3client.ErrBucketDoesNotExist.Error())
 			So(err.Error(), ShouldEqual, s3client.ErrBucketDoesNotExist.Error())
-			So(len(s3AmzCli.GetBucketReaderCalls()), ShouldEqual, 1)
+			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
 		})
 	})
 }
@@ -91,18 +87,16 @@ func TestBucketDoesNotExist(t *testing.T) {
 func TestBucketUnexpectedRegion(t *testing.T) {
 	Convey("Given that S3 client is available and bucket was created in a different region than the S3 client config", t, func() {
 
-		var s3AmzCli = &mock.AmzClientMock{
+		s3AmzCliMock := &mock.AmzClientMock{
 			GetBucketReaderFunc: bucketWrongRegion,
 		}
-		s3Cli := &s3client.S3{
-			s3AmzCli,
-		}
+		s3Cli := s3client.NewWithClient(s3AmzCliMock)
 
 		Convey("Checker returns a critical Check structure with the relevant error message", func() {
 			msg := msgWrongRegion(UnexpectedRegion, ExistingBucket)
 			_, err := validateCriticalCheck(s3Cli, ExistingBucket, 500, msg)
 			So(err.Error(), ShouldEqual, msg)
-			So(len(s3AmzCli.GetBucketReaderCalls()), ShouldEqual, 1)
+			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
 		})
 	})
 }
@@ -110,18 +104,16 @@ func TestBucketUnexpectedRegion(t *testing.T) {
 func TestBucketInexistentRegion(t *testing.T) {
 	Convey("Given that S3 client is available, bucket exists, but S3 is configured with an inexistent region", t, func() {
 
-		var s3AmzCli = &mock.AmzClientMock{
+		s3AmzCliMock := &mock.AmzClientMock{
 			GetBucketReaderFunc: bucketInexistentRegion,
 		}
-		s3Cli := &s3client.S3{
-			s3AmzCli,
-		}
+		s3Cli := s3client.NewWithClient(s3AmzCliMock)
 
 		Convey("Checker returns a critical Check structure with the relevant error message", func() {
 			msg := msgInexistentRegion(ExistingBucket)
 			_, err := validateCriticalCheck(s3Cli, ExistingBucket, 500, msg)
 			So(err.Error(), ShouldEqual, msg)
-			So(len(s3AmzCli.GetBucketReaderCalls()), ShouldEqual, 1)
+			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
 		})
 	})
 }
