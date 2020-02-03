@@ -1,13 +1,13 @@
 package s3client_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
 	"testing"
-	"time"
 
 	health "github.com/ONSdigital/dp-healthcheck/healthcheck"
 	s3client "github.com/ONSdigital/dp-s3"
@@ -22,22 +22,6 @@ const (
 	UnexpectedRegion = "us-west-1"
 	InexistentRegion = "atlantida-north-1"
 )
-
-// initial check that should be created by client constructor
-var expectedInitialCheck = &health.Check{
-	Name: s3client.ServiceName,
-}
-
-// create a successful check without lastFailed value
-func createSuccessfulCheck(t time.Time, msg string) health.Check {
-	return health.Check{
-		Name:        s3client.ServiceName,
-		LastSuccess: &t,
-		LastChecked: &t,
-		Status:      health.StatusOK,
-		Message:     msg,
-	}
-}
 
 // msgWrongRegion is the message returned when we try to get a bucket with the wrong region
 func msgWrongRegion(region, bucketName string) string {
@@ -56,7 +40,8 @@ func bucketExists(bucketName, path string) (io.ReadCloser, error) {
 
 // bucketDoesNotExist is the mock function for requests with inexistent regions
 func bucketDoesNotExist(bucketName, path string) (io.ReadCloser, error) {
-	return nil, s3client.ErrBucketDoesNotExist
+	errBucket := s3client.ErrBucketDoesNotExist{BucketName: bucketName}
+	return nil, &errBucket
 }
 
 // bucketWrongRegion is the mock function for requests with wrong region for bucket
@@ -72,16 +57,27 @@ func bucketInexistentRegion(bucketName, path string) (io.ReadCloser, error) {
 func TestBucketOk(t *testing.T) {
 	Convey("Given that S3 client is available, bucket exists and it was created in the same region as the S3 client config", t, func() {
 
+		// Create S3Client with mock AmzClient
 		s3AmzCliMock := &mock.AmzClientMock{
 			GetBucketReaderFunc: bucketExists,
 		}
-		s3Cli := s3client.NewWithClient(s3AmzCliMock)
-		So(s3Cli.Check, ShouldResemble, expectedInitialCheck)
+		s3Cli := s3client.NewWithClient(s3AmzCliMock, ExistingBucket)
 
-		Convey("Checker returns a successful Check structure", func() {
-			validateSuccessfulCheck(s3Cli, ExistingBucket)
-			So(s3Cli.Check.LastFailure, ShouldBeNil)
+		// mock CheckState for test validation
+		mockCheckState := mock.CheckStateMock{
+			UpdateFunc: func(status, message string, statusCode int) error {
+				return nil
+			},
+		}
+
+		Convey("Checker updates the CheckState to a successful state", func() {
+			s3Cli.Checker(context.Background(), &mockCheckState)
 			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
+			updateCalls := mockCheckState.UpdateCalls()
+			So(len(updateCalls), ShouldEqual, 1)
+			So(updateCalls[0].Status, ShouldEqual, health.StatusOK)
+			So(updateCalls[0].Message, ShouldEqual, s3client.MsgHealthy)
+			So(updateCalls[0].StatusCode, ShouldEqual, 0)
 		})
 	})
 }
@@ -89,17 +85,28 @@ func TestBucketOk(t *testing.T) {
 func TestBucketDoesNotExist(t *testing.T) {
 	Convey("Given that S3 client is available and bucket does not exist", t, func() {
 
+		// Create S3Client with mock AmzClient
 		s3AmzCliMock := &mock.AmzClientMock{
 			GetBucketReaderFunc: bucketDoesNotExist,
 		}
-		s3Cli := s3client.NewWithClient(s3AmzCliMock)
-		So(s3Cli.Check, ShouldResemble, expectedInitialCheck)
+		s3Cli := s3client.NewWithClient(s3AmzCliMock, InexistentBucket)
+
+		// mock CheckState for test validation
+		mockCheckState := mock.CheckStateMock{
+			UpdateFunc: func(status, message string, statusCode int) error {
+				return nil
+			},
+		}
 
 		Convey("Checker returns a critical Check structure with the relevant error message", func() {
-			_, err := validateCriticalCheck(s3Cli, InexistentBucket, s3client.ErrBucketDoesNotExist.Error())
-			So(err, ShouldResemble, s3client.ErrBucketDoesNotExist)
-			So(s3Cli.Check.LastSuccess, ShouldBeNil)
+			s3Cli.Checker(context.Background(), &mockCheckState)
 			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
+			updateCalls := mockCheckState.UpdateCalls()
+			expectedErr := s3client.ErrBucketDoesNotExist{BucketName: InexistentBucket}
+			So(len(updateCalls), ShouldEqual, 1)
+			So(updateCalls[0].Status, ShouldEqual, health.StatusCritical)
+			So(updateCalls[0].Message, ShouldEqual, expectedErr.Error())
+			So(updateCalls[0].StatusCode, ShouldEqual, 0)
 		})
 	})
 }
@@ -107,18 +114,28 @@ func TestBucketDoesNotExist(t *testing.T) {
 func TestBucketUnexpectedRegion(t *testing.T) {
 	Convey("Given that S3 client is available and bucket was created in a different region than the S3 client config", t, func() {
 
+		// Create S3Client with mock AmzClient
 		s3AmzCliMock := &mock.AmzClientMock{
 			GetBucketReaderFunc: bucketWrongRegion,
 		}
-		s3Cli := s3client.NewWithClient(s3AmzCliMock)
-		So(s3Cli.Check, ShouldResemble, expectedInitialCheck)
+		s3Cli := s3client.NewWithClient(s3AmzCliMock, ExistingBucket)
+
+		// mock CheckState for test validation
+		mockCheckState := mock.CheckStateMock{
+			UpdateFunc: func(status, message string, statusCode int) error {
+				return nil
+			},
+		}
 
 		Convey("Checker returns a critical Check structure with the relevant error message", func() {
-			expectedErr := errors.New(msgWrongRegion(UnexpectedRegion, ExistingBucket))
-			_, err := validateCriticalCheck(s3Cli, ExistingBucket, expectedErr.Error())
-			So(err, ShouldResemble, expectedErr)
-			So(s3Cli.Check.LastSuccess, ShouldBeNil)
+			s3Cli.Checker(context.Background(), &mockCheckState)
 			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
+			updateCalls := mockCheckState.UpdateCalls()
+			expectedErr := errors.New(msgWrongRegion(UnexpectedRegion, ExistingBucket))
+			So(len(updateCalls), ShouldEqual, 1)
+			So(updateCalls[0].Status, ShouldEqual, health.StatusCritical)
+			So(updateCalls[0].Message, ShouldEqual, expectedErr.Error())
+			So(updateCalls[0].StatusCode, ShouldEqual, 0)
 		})
 	})
 }
@@ -126,80 +143,28 @@ func TestBucketUnexpectedRegion(t *testing.T) {
 func TestBucketInexistentRegion(t *testing.T) {
 	Convey("Given that S3 client is available, bucket exists, but S3 is configured with an inexistent region", t, func() {
 
+		// Create S3Client with mock AmzClient
 		s3AmzCliMock := &mock.AmzClientMock{
 			GetBucketReaderFunc: bucketInexistentRegion,
 		}
-		s3Cli := s3client.NewWithClient(s3AmzCliMock)
-		So(s3Cli.Check, ShouldResemble, expectedInitialCheck)
+		s3Cli := s3client.NewWithClient(s3AmzCliMock, ExistingBucket)
+
+		// mock CheckState for test validation
+		mockCheckState := mock.CheckStateMock{
+			UpdateFunc: func(status, message string, statusCode int) error {
+				return nil
+			},
+		}
 
 		Convey("Checker returns a critical Check structure with the relevant error message", func() {
-			expectedErr := errors.New(msgInexistentRegion(ExistingBucket))
-			_, err := validateCriticalCheck(s3Cli, ExistingBucket, expectedErr.Error())
-			So(err, ShouldResemble, expectedErr)
-			So(s3Cli.Check.LastSuccess, ShouldBeNil)
+			s3Cli.Checker(context.Background(), &mockCheckState)
 			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
+			updateCalls := mockCheckState.UpdateCalls()
+			expectedErr := errors.New(msgInexistentRegion(ExistingBucket))
+			So(len(updateCalls), ShouldEqual, 1)
+			So(updateCalls[0].Status, ShouldEqual, health.StatusCritical)
+			So(updateCalls[0].Message, ShouldEqual, expectedErr.Error())
+			So(updateCalls[0].StatusCode, ShouldEqual, 0)
 		})
 	})
-}
-
-func TestCheckerHistory(t *testing.T) {
-
-	Convey("Given that we have an S3 client with previous successful check, but bucket no longer exists", t, func() {
-
-		s3AmzCliMock := &mock.AmzClientMock{
-			GetBucketReaderFunc: bucketDoesNotExist,
-		}
-		s3Cli := s3client.NewWithClient(s3AmzCliMock)
-		So(s3Cli.Check, ShouldResemble, expectedInitialCheck)
-
-		lastCheckTime := time.Now().UTC().Add(1 * time.Minute)
-		previousCheck := createSuccessfulCheck(lastCheckTime, s3client.MsgHealthy)
-		s3Cli.Check = &previousCheck
-
-		Convey("A new healthcheck keeps the non-overwritten values", func() {
-			_, err := validateCriticalCheck(s3Cli, InexistentBucket, s3client.ErrBucketDoesNotExist.Error())
-			So(err, ShouldResemble, s3client.ErrBucketDoesNotExist)
-			So(s3Cli.Check.LastSuccess, ShouldResemble, &lastCheckTime)
-		})
-	})
-}
-
-func validateSuccessfulCheck(cli *s3client.S3, bucketName string) (check *health.Check) {
-	t0 := time.Now().UTC()
-	check, err := cli.Checker(nil, bucketName)
-	t1 := time.Now().UTC()
-	So(err, ShouldBeNil)
-	So(check, ShouldResemble, cli.Check)
-	So(check.Name, ShouldEqual, s3client.ServiceName)
-	So(check.Status, ShouldEqual, health.StatusOK)
-	So(check.Message, ShouldEqual, s3client.MsgHealthy)
-	So(*check.LastChecked, ShouldHappenOnOrBetween, t0, t1)
-	So(*check.LastSuccess, ShouldHappenOnOrBetween, t0, t1)
-	return check
-}
-
-func validateWarningCheck(cli *s3client.S3, bucketName string, expectedMessage string) (check *health.Check, err error) {
-	t0 := time.Now().UTC()
-	check, err = cli.Checker(nil, bucketName)
-	t1 := time.Now().UTC()
-	So(check, ShouldResemble, cli.Check)
-	So(check.Name, ShouldEqual, s3client.ServiceName)
-	So(check.Status, ShouldEqual, health.StatusWarning)
-	So(check.Message, ShouldEqual, expectedMessage)
-	So(*check.LastChecked, ShouldHappenOnOrBetween, t0, t1)
-	So(*check.LastFailure, ShouldHappenOnOrBetween, t0, t1)
-	return check, err
-}
-
-func validateCriticalCheck(cli *s3client.S3, bucketName string, expectedMessage string) (check *health.Check, err error) {
-	t0 := time.Now().UTC()
-	check, err = cli.Checker(nil, bucketName)
-	t1 := time.Now().UTC()
-	So(check, ShouldResemble, cli.Check)
-	So(check.Name, ShouldEqual, s3client.ServiceName)
-	So(check.Status, ShouldEqual, health.StatusCritical)
-	So(check.Message, ShouldEqual, expectedMessage)
-	So(*check.LastChecked, ShouldHappenOnOrBetween, t0, t1)
-	So(*check.LastFailure, ShouldHappenOnOrBetween, t0, t1)
-	return check, err
 }
