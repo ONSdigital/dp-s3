@@ -98,7 +98,7 @@ func TestBucketDoesNotExist(t *testing.T) {
 			},
 		}
 
-		Convey("Checker returns a critical Check structure with the relevant error message", func() {
+		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
 			s3Cli.Checker(context.Background(), &mockCheckState)
 			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
 			updateCalls := mockCheckState.UpdateCalls()
@@ -127,7 +127,7 @@ func TestBucketUnexpectedRegion(t *testing.T) {
 			},
 		}
 
-		Convey("Checker returns a critical Check structure with the relevant error message", func() {
+		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
 			s3Cli.Checker(context.Background(), &mockCheckState)
 			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
 			updateCalls := mockCheckState.UpdateCalls()
@@ -156,7 +156,7 @@ func TestBucketInexistentRegion(t *testing.T) {
 			},
 		}
 
-		Convey("Checker returns a critical Check structure with the relevant error message", func() {
+		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
 			s3Cli.Checker(context.Background(), &mockCheckState)
 			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
 			updateCalls := mockCheckState.UpdateCalls()

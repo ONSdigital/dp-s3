@@ -30,7 +30,7 @@ func (e *ErrBucketDoesNotExist) Error() string {
 	return fmt.Sprintf("Bucket %s does not exist", e.BucketName)
 }
 
-// Checker performs a check health of S3 and returns it inside a Check structure
+// Checker performs a check health of S3 and updates the provided CheckState accordingly
 func (s3 *S3) Checker(ctx context.Context, state CheckState) error {
 	reader, err := s3.Get("s3://" + s3.BucketName)
 	if err != nil {
