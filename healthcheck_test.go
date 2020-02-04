@@ -63,21 +63,15 @@ func TestBucketOk(t *testing.T) {
 		}
 		s3Cli := s3client.NewWithClient(s3AmzCliMock, ExistingBucket)
 
-		// mock CheckState for test validation
-		mockCheckState := mock.CheckStateMock{
-			UpdateFunc: func(status, message string, statusCode int) error {
-				return nil
-			},
-		}
+		// CheckState for test validation
+		checkState := health.NewCheckState(s3client.ServiceName)
 
 		Convey("Checker updates the CheckState to a successful state", func() {
-			s3Cli.Checker(context.Background(), &mockCheckState)
+			s3Cli.Checker(context.Background(), checkState)
 			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
-			updateCalls := mockCheckState.UpdateCalls()
-			So(len(updateCalls), ShouldEqual, 1)
-			So(updateCalls[0].Status, ShouldEqual, health.StatusOK)
-			So(updateCalls[0].Message, ShouldEqual, s3client.MsgHealthy)
-			So(updateCalls[0].StatusCode, ShouldEqual, 0)
+			So(checkState.Status(), ShouldEqual, health.StatusOK)
+			So(checkState.Message(), ShouldEqual, s3client.MsgHealthy)
+			So(checkState.StatusCode(), ShouldEqual, 0)
 		})
 	})
 }
@@ -91,22 +85,16 @@ func TestBucketDoesNotExist(t *testing.T) {
 		}
 		s3Cli := s3client.NewWithClient(s3AmzCliMock, InexistentBucket)
 
-		// mock CheckState for test validation
-		mockCheckState := mock.CheckStateMock{
-			UpdateFunc: func(status, message string, statusCode int) error {
-				return nil
-			},
-		}
+		// CheckState for test validation
+		checkState := health.NewCheckState(s3client.ServiceName)
 
 		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
-			s3Cli.Checker(context.Background(), &mockCheckState)
+			s3Cli.Checker(context.Background(), checkState)
 			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
-			updateCalls := mockCheckState.UpdateCalls()
 			expectedErr := s3client.ErrBucketDoesNotExist{BucketName: InexistentBucket}
-			So(len(updateCalls), ShouldEqual, 1)
-			So(updateCalls[0].Status, ShouldEqual, health.StatusCritical)
-			So(updateCalls[0].Message, ShouldEqual, expectedErr.Error())
-			So(updateCalls[0].StatusCode, ShouldEqual, 0)
+			So(checkState.Status(), ShouldEqual, health.StatusCritical)
+			So(checkState.Message(), ShouldEqual, expectedErr.Error())
+			So(checkState.StatusCode(), ShouldEqual, 0)
 		})
 	})
 }
@@ -120,22 +108,16 @@ func TestBucketUnexpectedRegion(t *testing.T) {
 		}
 		s3Cli := s3client.NewWithClient(s3AmzCliMock, ExistingBucket)
 
-		// mock CheckState for test validation
-		mockCheckState := mock.CheckStateMock{
-			UpdateFunc: func(status, message string, statusCode int) error {
-				return nil
-			},
-		}
+		// CheckState for test validation
+		checkState := health.NewCheckState(s3client.ServiceName)
 
 		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
-			s3Cli.Checker(context.Background(), &mockCheckState)
+			s3Cli.Checker(context.Background(), checkState)
 			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
-			updateCalls := mockCheckState.UpdateCalls()
 			expectedErr := errors.New(msgWrongRegion(UnexpectedRegion, ExistingBucket))
-			So(len(updateCalls), ShouldEqual, 1)
-			So(updateCalls[0].Status, ShouldEqual, health.StatusCritical)
-			So(updateCalls[0].Message, ShouldEqual, expectedErr.Error())
-			So(updateCalls[0].StatusCode, ShouldEqual, 0)
+			So(checkState.Status(), ShouldEqual, health.StatusCritical)
+			So(checkState.Message(), ShouldEqual, expectedErr.Error())
+			So(checkState.StatusCode(), ShouldEqual, 0)
 		})
 	})
 }
@@ -149,22 +131,16 @@ func TestBucketInexistentRegion(t *testing.T) {
 		}
 		s3Cli := s3client.NewWithClient(s3AmzCliMock, ExistingBucket)
 
-		// mock CheckState for test validation
-		mockCheckState := mock.CheckStateMock{
-			UpdateFunc: func(status, message string, statusCode int) error {
-				return nil
-			},
-		}
+		// CheckState for test validation
+		checkState := health.NewCheckState(s3client.ServiceName)
 
 		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
-			s3Cli.Checker(context.Background(), &mockCheckState)
+			s3Cli.Checker(context.Background(), checkState)
 			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
-			updateCalls := mockCheckState.UpdateCalls()
 			expectedErr := errors.New(msgInexistentRegion(ExistingBucket))
-			So(len(updateCalls), ShouldEqual, 1)
-			So(updateCalls[0].Status, ShouldEqual, health.StatusCritical)
-			So(updateCalls[0].Message, ShouldEqual, expectedErr.Error())
-			So(updateCalls[0].StatusCode, ShouldEqual, 0)
+			So(checkState.Status(), ShouldEqual, health.StatusCritical)
+			So(checkState.Message(), ShouldEqual, expectedErr.Error())
+			So(checkState.StatusCode(), ShouldEqual, 0)
 		})
 	})
 }

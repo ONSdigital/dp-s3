@@ -7,13 +7,6 @@ import (
 	health "github.com/ONSdigital/dp-healthcheck/healthcheck"
 )
 
-//go:generate moq -out ./mock/check_state.go -pkg mock . CheckState
-
-// CheckState interface corresponds to the healthcheck CheckState structure
-type CheckState interface {
-	Update(status, message string, statusCode int) error
-}
-
 // ServiceName S3
 const ServiceName = "S3"
 
@@ -31,7 +24,7 @@ func (e *ErrBucketDoesNotExist) Error() string {
 }
 
 // Checker performs a check health of S3 and updates the provided CheckState accordingly
-func (s3 *S3) Checker(ctx context.Context, state CheckState) error {
+func (s3 *S3) Checker(ctx context.Context, state *health.CheckState) error {
 	reader, err := s3.Get("s3://" + s3.BucketName)
 	if err != nil {
 		// errBucket := ErrBucketDoesNotExist{BucketName: s3.BucketName}
