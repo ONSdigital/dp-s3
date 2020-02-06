@@ -155,7 +155,7 @@ func (cli *S3) UploadWithPsk(ctx context.Context, resum Resumable, b []byte, psk
 
 	parts := output.Parts
 	if len(parts) == resum.TotalChunks {
-		return cli.completeUpload(ctx, uploadID, resum.UploadKey, resum.TotalChunks, parts)
+		return cli.completeUpload(ctx, uploadID, resum, parts)
 	}
 
 	return nil
@@ -163,7 +163,7 @@ func (cli *S3) UploadWithPsk(ctx context.Context, resum Resumable, b []byte, psk
 
 // CheckUploaded check uploaded. Returns true only if the chunk corresponding to the provided chunkNumber has been uploaded.
 // If the upload is finished, we complete it.
-func (cli *S3) CheckUploaded(ctx context.Context, uploadKey string, chunkNumber, totalChunks int) (bool, error) {
+func (cli *S3) CheckUploaded(ctx context.Context, resum Resumable) (bool, error) {
 
 	listMultiInput := &s3.ListMultipartUploadsInput{
 		Bucket: &cli.bucketName,
@@ -177,7 +177,7 @@ func (cli *S3) CheckUploaded(ctx context.Context, uploadKey string, chunkNumber,
 
 	var uploadID string
 	for _, upload := range listMultiOutput.Uploads {
-		if *upload.Key == uploadKey {
+		if *upload.Key == resum.UploadKey {
 			uploadID = *upload.UploadId
 		}
 	}
@@ -186,7 +186,7 @@ func (cli *S3) CheckUploaded(ctx context.Context, uploadKey string, chunkNumber,
 	}
 
 	input := &s3.ListPartsInput{
-		Key:      &uploadKey,
+		Key:      &resum.UploadKey,
 		Bucket:   &cli.bucketName,
 		UploadId: &uploadID,
 	}
@@ -198,15 +198,15 @@ func (cli *S3) CheckUploaded(ctx context.Context, uploadKey string, chunkNumber,
 	}
 
 	parts := output.Parts
-	if len(parts) == totalChunks {
-		if err = cli.completeUpload(ctx, uploadID, uploadKey, totalChunks, parts); err != nil {
+	if len(parts) == resum.TotalChunks {
+		if err = cli.completeUpload(ctx, uploadID, resum, parts); err != nil {
 			return false, err
 		}
 		return true, nil
 	}
 
 	for _, part := range parts {
-		if *part.PartNumber == int64(chunkNumber) {
+		if *part.PartNumber == int64(resum.ChunkNumber) {
 			return true, nil
 		}
 	}
@@ -215,7 +215,7 @@ func (cli *S3) CheckUploaded(ctx context.Context, uploadKey string, chunkNumber,
 }
 
 // completeUpload if all parts have been uploaded, we complete the multipart upload.
-func (cli *S3) completeUpload(ctx context.Context, uploadID, uploadKey string, totalChunks int, parts []*s3.Part) error {
+func (cli *S3) completeUpload(ctx context.Context, uploadID string, resum Resumable, parts []*s3.Part) error {
 	var completedParts []*s3.CompletedPart
 
 	for _, part := range parts {
@@ -225,9 +225,9 @@ func (cli *S3) completeUpload(ctx context.Context, uploadID, uploadKey string, t
 		})
 	}
 
-	if len(completedParts) == totalChunks {
+	if len(completedParts) == resum.TotalChunks {
 		completeInput := &s3.CompleteMultipartUploadInput{
-			Key:      &uploadKey,
+			Key:      &resum.UploadKey,
 			UploadId: &uploadID,
 			MultipartUpload: &s3.CompletedMultipartUpload{
 				Parts: completedParts,
