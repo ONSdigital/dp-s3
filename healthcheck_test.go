@@ -3,15 +3,12 @@ package s3client_test
 import (
 	"context"
 	"errors"
-	"fmt"
-	"io"
-	"io/ioutil"
-	"strings"
 	"testing"
 
 	health "github.com/ONSdigital/dp-healthcheck/healthcheck"
 	s3client "github.com/ONSdigital/dp-s3"
 	"github.com/ONSdigital/dp-s3/mock"
+	"github.com/aws/aws-sdk-go/service/s3"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -24,51 +21,47 @@ const (
 )
 
 // msgWrongRegion is the message returned when we try to get a bucket with the wrong region
-func msgWrongRegion(region, bucketName string) string {
-	return fmt.Sprintf("Get https://s3-%s.amazonaws.com/%s/: 301 response missing Location header", region, bucketName)
-}
+var msgWrongRegion = "BucketRegionError"
 
 // msgInexistentRegion is the message returned when we try to get a bucket with an inexistent region
-func msgInexistentRegion(bucketName string) string {
-	return fmt.Sprintf("Get /%s/: unsupported protocol scheme \"\"", bucketName)
-}
+var msgInexistentRegion = "RequestError"
 
 // bucketExists is the mock function for requests for existing buckets
-func bucketExists(bucketName, path string) (io.ReadCloser, error) {
-	return ioutil.NopCloser(strings.NewReader("MockReadCloser")), nil
+func bucketExists(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
+	return &s3.ListObjectsV2Output{}, nil
 }
 
 // bucketDoesNotExist is the mock function for requests with inexistent regions
-func bucketDoesNotExist(bucketName, path string) (io.ReadCloser, error) {
-	errBucket := s3client.ErrBucketDoesNotExist{BucketName: bucketName}
+func bucketDoesNotExist(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
+	errBucket := s3client.ErrBucketDoesNotExist{BucketName: InexistentBucket}
 	return nil, &errBucket
 }
 
 // bucketWrongRegion is the mock function for requests with wrong region for bucket
-func bucketWrongRegion(bucketName, path string) (io.ReadCloser, error) {
-	return nil, errors.New(msgWrongRegion(UnexpectedRegion, bucketName))
+func bucketWrongRegion(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
+	return nil, errors.New(msgWrongRegion)
 }
 
 // bucketInexistentRegion is the mock function for requests with inexistent region
-func bucketInexistentRegion(bucketName, path string) (io.ReadCloser, error) {
-	return nil, errors.New(msgInexistentRegion(bucketName))
+func bucketInexistentRegion(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
+	return nil, errors.New(msgInexistentRegion)
 }
 
 func TestBucketOk(t *testing.T) {
 	Convey("Given that S3 client is available, bucket exists and it was created in the same region as the S3 client config", t, func() {
 
-		// Create S3Client with mock AmzClient
-		s3AmzCliMock := &mock.AmzClientMock{
-			GetBucketReaderFunc: bucketExists,
+		// Create S3Client with SDK Mock for existing bucket
+		sdkMock := &mock.S3SDKClientMock{
+			ListObjectsV2Func: bucketExists,
 		}
-		s3Cli := s3client.NewWithClient(s3AmzCliMock, ExistingBucket)
+		s3Cli := s3client.Instantiate(sdkMock, nil, ExistingBucket, ExpectedRegion)
 
 		// CheckState for test validation
 		checkState := health.NewCheckState(s3client.ServiceName)
 
 		Convey("Checker updates the CheckState to a successful state", func() {
 			s3Cli.Checker(context.Background(), checkState)
-			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
+			So(len(sdkMock.ListObjectsV2Calls()), ShouldEqual, 1)
 			So(checkState.Status(), ShouldEqual, health.StatusOK)
 			So(checkState.Message(), ShouldEqual, s3client.MsgHealthy)
 			So(checkState.StatusCode(), ShouldEqual, 0)
@@ -79,18 +72,18 @@ func TestBucketOk(t *testing.T) {
 func TestBucketDoesNotExist(t *testing.T) {
 	Convey("Given that S3 client is available and bucket does not exist", t, func() {
 
-		// Create S3Client with mock AmzClient
-		s3AmzCliMock := &mock.AmzClientMock{
-			GetBucketReaderFunc: bucketDoesNotExist,
+		// Create S3Client with SDK Mock for inexistent bucket
+		sdkMock := &mock.S3SDKClientMock{
+			ListObjectsV2Func: bucketDoesNotExist,
 		}
-		s3Cli := s3client.NewWithClient(s3AmzCliMock, InexistentBucket)
+		s3Cli := s3client.Instantiate(sdkMock, nil, InexistentBucket, ExpectedRegion)
 
 		// CheckState for test validation
 		checkState := health.NewCheckState(s3client.ServiceName)
 
 		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
 			s3Cli.Checker(context.Background(), checkState)
-			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
+			So(len(sdkMock.ListObjectsV2Calls()), ShouldEqual, 1)
 			expectedErr := s3client.ErrBucketDoesNotExist{BucketName: InexistentBucket}
 			So(checkState.Status(), ShouldEqual, health.StatusCritical)
 			So(checkState.Message(), ShouldEqual, expectedErr.Error())
@@ -102,19 +95,19 @@ func TestBucketDoesNotExist(t *testing.T) {
 func TestBucketUnexpectedRegion(t *testing.T) {
 	Convey("Given that S3 client is available and bucket was created in a different region than the S3 client config", t, func() {
 
-		// Create S3Client with mock AmzClient
-		s3AmzCliMock := &mock.AmzClientMock{
-			GetBucketReaderFunc: bucketWrongRegion,
+		// Create S3Client with SDK Mock for unexpected region for bucket
+		sdkMock := &mock.S3SDKClientMock{
+			ListObjectsV2Func: bucketWrongRegion,
 		}
-		s3Cli := s3client.NewWithClient(s3AmzCliMock, ExistingBucket)
+		s3Cli := s3client.Instantiate(sdkMock, nil, ExistingBucket, UnexpectedRegion)
 
 		// CheckState for test validation
 		checkState := health.NewCheckState(s3client.ServiceName)
 
 		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
 			s3Cli.Checker(context.Background(), checkState)
-			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
-			expectedErr := errors.New(msgWrongRegion(UnexpectedRegion, ExistingBucket))
+			So(len(sdkMock.ListObjectsV2Calls()), ShouldEqual, 1)
+			expectedErr := errors.New(msgWrongRegion)
 			So(checkState.Status(), ShouldEqual, health.StatusCritical)
 			So(checkState.Message(), ShouldEqual, expectedErr.Error())
 			So(checkState.StatusCode(), ShouldEqual, 0)
@@ -125,19 +118,19 @@ func TestBucketUnexpectedRegion(t *testing.T) {
 func TestBucketInexistentRegion(t *testing.T) {
 	Convey("Given that S3 client is available, bucket exists, but S3 is configured with an inexistent region", t, func() {
 
-		// Create S3Client with mock AmzClient
-		s3AmzCliMock := &mock.AmzClientMock{
-			GetBucketReaderFunc: bucketInexistentRegion,
+		// Create S3Client with SDK Mock for inexistent region
+		sdkMock := &mock.S3SDKClientMock{
+			ListObjectsV2Func: bucketInexistentRegion,
 		}
-		s3Cli := s3client.NewWithClient(s3AmzCliMock, ExistingBucket)
+		s3Cli := s3client.Instantiate(sdkMock, nil, ExistingBucket, InexistentRegion)
 
 		// CheckState for test validation
 		checkState := health.NewCheckState(s3client.ServiceName)
 
 		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
 			s3Cli.Checker(context.Background(), checkState)
-			So(len(s3AmzCliMock.GetBucketReaderCalls()), ShouldEqual, 1)
-			expectedErr := errors.New(msgInexistentRegion(ExistingBucket))
+			So(len(sdkMock.ListObjectsV2Calls()), ShouldEqual, 1)
+			expectedErr := errors.New(msgInexistentRegion)
 			So(checkState.Status(), ShouldEqual, health.StatusCritical)
 			So(checkState.Message(), ShouldEqual, expectedErr.Error())
 			So(checkState.StatusCode(), ShouldEqual, 0)

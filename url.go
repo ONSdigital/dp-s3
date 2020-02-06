@@ -28,7 +28,7 @@ func (url *URL) BucketName() string {
 	return url.Host
 }
 
-// Path returns the file path from the URL.
+// Path returns the file path (S3 key) from the URL.
 func (url *URL) Path() string {
 	return strings.TrimPrefix(url.URL.Path, "/")
 }
