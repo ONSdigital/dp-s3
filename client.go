@@ -182,7 +182,8 @@ func (cli *S3) CheckUploaded(ctx context.Context, req *UploadRequest) (bool, err
 		}
 	}
 	if len(uploadID) == 0 {
-		return false, ErrChunkNumberNotUploaded
+		log.Event(ctx, "chunk number not uploaded", log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
+		return false, &ErrNotUploaded{UploadKey: req.UploadKey}
 	}
 
 	input := &s3.ListPartsInput{
@@ -194,8 +195,11 @@ func (cli *S3) CheckUploaded(ctx context.Context, req *UploadRequest) (bool, err
 	output, err := cli.sdkClient.ListParts(input)
 	if err != nil {
 		log.Event(ctx, "chunk number verification error", log.Error(err), log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
-		return false, ErrChunkNumberNotFound
+		return false, &ErrListParts{err.Error()}
 	}
+
+	// TODO: If there are more than 1000 parts, they will be paginated, so we would need to call ListParts again with the provided Marker until we have all of them.
+	// Reference: https://docs.aws.amazon.com/sdk-for-go/api/service/s3/#S3.ListParts
 
 	parts := output.Parts
 	if len(parts) == req.TotalChunks {
@@ -212,7 +216,8 @@ func (cli *S3) CheckUploaded(ctx context.Context, req *UploadRequest) (bool, err
 		}
 	}
 
-	return false, ErrChunkNumberNotFound
+	log.Event(ctx, "chunk number failed to upload", log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
+	return false, &ErrChunkNumberNotFound{req.ChunkNumber}
 }
 
 // completeUpload if all parts have been uploaded, we complete the multipart upload.
@@ -244,7 +249,6 @@ func (cli *S3) completeUpload(ctx context.Context, uploadID string, req *UploadR
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -267,7 +271,8 @@ func (cli *S3) GetFromURL(rawURL string) (io.ReadCloser, error) {
 
 	// Validate that bucket defined by URL matches the bucket of this client
 	if url.BucketName() != cli.bucketName {
-		return nil, ErrUnexpectedBucket
+		return nil, &ErrUnexpectedBucket{
+			expectedBucketName: cli.bucketName, bucketName: url.BucketName()}
 	}
 
 	return cli.Get(url.Path())
