@@ -22,8 +22,8 @@ type S3 struct {
 	region       string
 }
 
-// Resumable represents a resumable upload
-type Resumable struct {
+// UploadRequest represents a resumable upload request
+type UploadRequest struct {
 	UploadKey   string
 	Type        string
 	ChunkNumber int
@@ -68,12 +68,12 @@ func Instantiate(sdkClient S3SDKClient, cryptoClient S3CryptoClient, bucketName,
 }
 
 // Upload handles the uploading a file to AWS S3, into the bucket configured for this client
-func (cli *S3) Upload(ctx context.Context, resum Resumable, b []byte) error {
-	return cli.UploadWithPsk(ctx, resum, b, nil)
+func (cli *S3) Upload(ctx context.Context, req *UploadRequest, payload []byte) error {
+	return cli.UploadWithPsk(ctx, req, payload, nil)
 }
 
 // UploadWithPsk handles the uploading a file to AWS S3, into the bucket configured for this client, using a user-defined psk
-func (cli *S3) UploadWithPsk(ctx context.Context, resum Resumable, b []byte, psk []byte) error {
+func (cli *S3) UploadWithPsk(ctx context.Context, req *UploadRequest, payload []byte, psk []byte) error {
 
 	listMultiInput := &s3.ListMultipartUploadsInput{
 		Bucket: &cli.bucketName,
@@ -87,7 +87,7 @@ func (cli *S3) UploadWithPsk(ctx context.Context, resum Resumable, b []byte, psk
 
 	var uploadID string
 	for _, upload := range listMultiOutput.Uploads {
-		if *upload.Key == resum.UploadKey {
+		if *upload.Key == req.UploadKey {
 			uploadID = *upload.UploadId
 		}
 	}
@@ -96,8 +96,8 @@ func (cli *S3) UploadWithPsk(ctx context.Context, resum Resumable, b []byte, psk
 
 		createMultiInput := &s3.CreateMultipartUploadInput{
 			Bucket:      &cli.bucketName,
-			Key:         &resum.UploadKey,
-			ContentType: &resum.Type,
+			Key:         &req.UploadKey,
+			ContentType: &req.Type,
 		}
 
 		createMultiOutput, err := cli.sdkClient.CreateMultipartUpload(createMultiInput)
@@ -109,14 +109,14 @@ func (cli *S3) UploadWithPsk(ctx context.Context, resum Resumable, b []byte, psk
 		uploadID = *createMultiOutput.UploadId
 	}
 
-	rs := bytes.NewReader(b)
+	rs := bytes.NewReader(payload)
 
-	n := int64(resum.ChunkNumber)
+	n := int64(req.ChunkNumber)
 
 	uploadPartInput := &s3.UploadPartInput{
 		UploadId:   &uploadID,
 		Bucket:     &cli.bucketName,
-		Key:        &resum.UploadKey,
+		Key:        &req.UploadKey,
 		Body:       rs,
 		PartNumber: &n,
 	}
@@ -136,13 +136,13 @@ func (cli *S3) UploadWithPsk(ctx context.Context, resum Resumable, b []byte, psk
 	}
 
 	log.Event(ctx, "chunk accepted", log.Data{
-		"chunk_number": resum.ChunkNumber,
-		"max_chunks":   resum.TotalChunks,
-		"file_name":    resum.FileName,
+		"chunk_number": req.ChunkNumber,
+		"max_chunks":   req.TotalChunks,
+		"file_name":    req.FileName,
 	})
 
 	input := &s3.ListPartsInput{
-		Key:      &resum.UploadKey,
+		Key:      &req.UploadKey,
 		Bucket:   &cli.bucketName,
 		UploadId: &uploadID,
 	}
@@ -154,8 +154,8 @@ func (cli *S3) UploadWithPsk(ctx context.Context, resum Resumable, b []byte, psk
 	}
 
 	parts := output.Parts
-	if len(parts) == resum.TotalChunks {
-		return cli.completeUpload(ctx, uploadID, resum, parts)
+	if len(parts) == req.TotalChunks {
+		return cli.completeUpload(ctx, uploadID, req, parts)
 	}
 
 	return nil
@@ -163,7 +163,7 @@ func (cli *S3) UploadWithPsk(ctx context.Context, resum Resumable, b []byte, psk
 
 // CheckUploaded check uploaded. Returns true only if the chunk corresponding to the provided chunkNumber has been uploaded.
 // If the upload is finished, we complete it.
-func (cli *S3) CheckUploaded(ctx context.Context, resum Resumable) (bool, error) {
+func (cli *S3) CheckUploaded(ctx context.Context, req *UploadRequest) (bool, error) {
 
 	listMultiInput := &s3.ListMultipartUploadsInput{
 		Bucket: &cli.bucketName,
@@ -177,7 +177,7 @@ func (cli *S3) CheckUploaded(ctx context.Context, resum Resumable) (bool, error)
 
 	var uploadID string
 	for _, upload := range listMultiOutput.Uploads {
-		if *upload.Key == resum.UploadKey {
+		if *upload.Key == req.UploadKey {
 			uploadID = *upload.UploadId
 		}
 	}
@@ -186,27 +186,28 @@ func (cli *S3) CheckUploaded(ctx context.Context, resum Resumable) (bool, error)
 	}
 
 	input := &s3.ListPartsInput{
-		Key:      &resum.UploadKey,
+		Key:      &req.UploadKey,
 		Bucket:   &cli.bucketName,
 		UploadId: &uploadID,
 	}
 
 	output, err := cli.sdkClient.ListParts(input)
 	if err != nil {
-		log.Event(ctx, "error listing parts", log.Error(err))
+		log.Event(ctx, "chunk number verification error", log.Error(err), log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
 		return false, ErrChunkNumberNotFound
 	}
 
 	parts := output.Parts
-	if len(parts) == resum.TotalChunks {
-		if err = cli.completeUpload(ctx, uploadID, resum, parts); err != nil {
+	if len(parts) == req.TotalChunks {
+		if err = cli.completeUpload(ctx, uploadID, req, parts); err != nil {
 			return false, err
 		}
 		return true, nil
 	}
 
 	for _, part := range parts {
-		if *part.PartNumber == int64(resum.ChunkNumber) {
+		if *part.PartNumber == int64(req.ChunkNumber) {
+			log.Event(ctx, "chunk number already uploaded", log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName, "identifier": req.UploadKey})
 			return true, nil
 		}
 	}
@@ -215,7 +216,7 @@ func (cli *S3) CheckUploaded(ctx context.Context, resum Resumable) (bool, error)
 }
 
 // completeUpload if all parts have been uploaded, we complete the multipart upload.
-func (cli *S3) completeUpload(ctx context.Context, uploadID string, resum Resumable, parts []*s3.Part) error {
+func (cli *S3) completeUpload(ctx context.Context, uploadID string, req *UploadRequest, parts []*s3.Part) error {
 	var completedParts []*s3.CompletedPart
 
 	for _, part := range parts {
@@ -225,9 +226,9 @@ func (cli *S3) completeUpload(ctx context.Context, uploadID string, resum Resuma
 		})
 	}
 
-	if len(completedParts) == resum.TotalChunks {
+	if len(completedParts) == req.TotalChunks {
 		completeInput := &s3.CompleteMultipartUploadInput{
-			Key:      &resum.UploadKey,
+			Key:      &req.UploadKey,
 			UploadId: &uploadID,
 			MultipartUpload: &s3.CompletedMultipartUpload{
 				Parts: completedParts,
