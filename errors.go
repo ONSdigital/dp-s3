@@ -28,20 +28,20 @@ func (e *ErrNotUploaded) Error() string {
 
 // ErrListParts represents an error returned by S3 ListParts
 type ErrListParts struct {
-	msg string
+	Msg string
 }
 
 // Error returns the underlaying error message returned by ListParts
 func (e *ErrListParts) Error() string {
-	return fmt.Sprintf("ListParts error: %s", e.msg)
+	return fmt.Sprintf("ListParts error: %s", e.Msg)
 }
 
 // ErrChunkNumberNotFound if a chunk number could not be found in an existing multipart upload.
 type ErrChunkNumberNotFound struct {
-	chunkNumber int
+	ChunkNumber int
 }
 
 // Error returns the error message containing the chunk num er that could not be found
 func (e *ErrChunkNumberNotFound) Error() string {
-	return fmt.Sprintf("Chunk number %d not found", e.chunkNumber)
+	return fmt.Sprintf("Chunk number %d not found", e.ChunkNumber)
 }

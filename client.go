@@ -67,6 +67,11 @@ func Instantiate(sdkClient S3SDKClient, cryptoClient S3CryptoClient, bucketName,
 	}
 }
 
+// BucketName is a getter for the bucket name used by this S3 client
+func (cli *S3) BucketName() string {
+	return cli.bucketName
+}
+
 // Upload handles the uploading a file to AWS S3, into the bucket configured for this client
 func (cli *S3) Upload(ctx context.Context, req *UploadRequest, payload []byte) error {
 	return cli.UploadWithPsk(ctx, req, payload, nil)
@@ -162,7 +167,7 @@ func (cli *S3) UploadWithPsk(ctx context.Context, req *UploadRequest, payload []
 }
 
 // CheckUploaded check uploaded. Returns true only if the chunk corresponding to the provided chunkNumber has been uploaded.
-// If the upload is finished, we complete it.
+// If all the chunks have been uploaded, we complete the upload operation.
 func (cli *S3) CheckUploaded(ctx context.Context, req *UploadRequest) (bool, error) {
 
 	listMultiInput := &s3.ListMultipartUploadsInput{
