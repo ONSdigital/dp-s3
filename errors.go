@@ -6,14 +6,14 @@ import (
 
 // ErrUnexpectedBucket if a request tried to access an unexpected bucket
 type ErrUnexpectedBucket struct {
-	bucketName         string
-	expectedBucketName string
+	BucketName         string
+	ExpectedBucketName string
 }
 
 // Error returns the error message with the requested and expected bucket names.
 func (e *ErrUnexpectedBucket) Error() string {
 	return fmt.Sprintf("Unexpected bucket: %s. This S3 client is configured with bucket %s",
-		e.bucketName, e.expectedBucketName)
+		e.BucketName, e.ExpectedBucketName)
 }
 
 // ErrNotUploaded if an s3Key could not be found in ListMultipartUploads

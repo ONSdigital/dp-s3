@@ -257,15 +257,15 @@ func (cli *S3) completeUpload(ctx context.Context, uploadID string, req *UploadR
 	return nil
 }
 
-// GetURL returns a full S3 URL from the provided path and the bucket and region configured for the client.
-func (cli *S3) GetURL(path string) string {
+// GetHTTPSURL returns an https S3 URL from the provided path and the bucket and region configured for the client.
+func (cli *S3) GetHTTPSURL(path string) string {
 	url := "https://s3-%s.amazonaws.com/%s/%s"
 	return fmt.Sprintf(url, cli.region, cli.bucketName, path)
 }
 
-// GetFromURL returns an io.ReadCloser instance for the given fully qualified S3 URL.
+// GetFromS3URL returns an io.ReadCloser instance for the given S3 URL (s3://...)
 // If the URL defines a bucket different from the one configured in this client, an error will be returned.
-func (cli *S3) GetFromURL(rawURL string) (io.ReadCloser, error) {
+func (cli *S3) GetFromS3URL(rawURL string) (io.ReadCloser, error) {
 
 	// Use the S3 URL implementation as the S3 drivers don't seem to handle fully qualified URLs that include the
 	// bucket name.
@@ -277,7 +277,7 @@ func (cli *S3) GetFromURL(rawURL string) (io.ReadCloser, error) {
 	// Validate that bucket defined by URL matches the bucket of this client
 	if url.BucketName() != cli.bucketName {
 		return nil, &ErrUnexpectedBucket{
-			expectedBucketName: cli.bucketName, bucketName: url.BucketName()}
+			ExpectedBucketName: cli.bucketName, BucketName: url.BucketName()}
 	}
 
 	return cli.Get(url.Path())

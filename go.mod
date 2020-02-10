@@ -1,6 +1,6 @@
 module github.com/ONSdigital/dp-s3
 
-go 1.12
+go 1.13
 
 require (
 	github.com/ONSdigital/dp-healthcheck v0.0.0-20200131122546-9db6d3f0494e
