@@ -13,13 +13,13 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestGetUrl(t *testing.T) {
+func TestGetPathStyleURL(t *testing.T) {
 
 	Convey("Given an S3 client configured with a bucket and region", t, func() {
 		s3Cli := s3client.Instantiate(nil, nil, "bucket", "eu-north-1")
 
 		Convey("getURL returns the correct fully qualified URL with the bucket, region and requested path", func() {
-			url := s3Cli.GetHTTPSURL("path")
+			url := s3Cli.GetPathStyleURL("path")
 			So(url, ShouldEqual, "https://s3-eu-north-1.amazonaws.com/bucket/path")
 		})
 

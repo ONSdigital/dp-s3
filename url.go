@@ -5,7 +5,8 @@ import (
 	"strings"
 )
 
-// NewURL create a new instance of URL.
+// NewURL create a new instance of URL from a virtual-hosted-style URL
+// e.g. 'https://bucktName/ObjectKey'
 func NewURL(rawURL string) (*URL, error) {
 
 	url, err := url.Parse(rawURL)

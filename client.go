@@ -257,13 +257,15 @@ func (cli *S3) completeUpload(ctx context.Context, uploadID string, req *UploadR
 	return nil
 }
 
-// GetHTTPSURL returns an https S3 URL from the provided path and the bucket and region configured for the client.
-func (cli *S3) GetHTTPSURL(path string) string {
+// GetPathStyleURL returns an https S3 URL from the provided path and the bucket and region
+// configured for the client in path-style. Note: this format is deprecated by Amazon
+// https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
+func (cli *S3) GetPathStyleURL(path string) string {
 	url := "https://s3-%s.amazonaws.com/%s/%s"
 	return fmt.Sprintf(url, cli.region, cli.bucketName, path)
 }
 
-// GetFromS3URL returns an io.ReadCloser instance for the given S3 URL (s3://...)
+// GetFromS3URL returns an io.ReadCloser instance for the given S3 virtual-hosted-style URL (s3://bucketName/objectKey)
 // If the URL defines a bucket different from the one configured in this client, an error will be returned.
 func (cli *S3) GetFromS3URL(rawURL string) (io.ReadCloser, error) {
 
