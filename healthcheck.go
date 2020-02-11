@@ -30,17 +30,9 @@ func (cli *S3) Checker(ctx context.Context, state *health.CheckState) error {
 	err := cli.ValidateBucket()
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			switch awsErr.Code() {
-			case s3.ErrCodeNoSuchBucket:
-				// Bucket does not exist
-				errBucket := ErrBucketDoesNotExist{BucketName: cli.bucketName}
-				state.Update(health.StatusCritical, errBucket.Error(), 0)
-				return nil
-			default:
-				// Other AWS error
-				state.Update(health.StatusCritical, awsErr.Code(), 0)
-				return nil
-			}
+			// AWS error
+			cli.handleAWSErr(awsErr, state)
+			return nil
 		}
 		// Generic error
 		state.Update(health.StatusCritical, err.Error(), 0)
@@ -49,4 +41,18 @@ func (cli *S3) Checker(ctx context.Context, state *health.CheckState) error {
 	// Success
 	state.Update(health.StatusOK, MsgHealthy, 0)
 	return nil
+}
+
+// handleAWSErr updates the provided CheckState with a Critical state and a message according to the provided AWS error.
+// For inexistent buckets, a relevant error message will be generated, for any other error we use the AWS Code (consice string).
+func (cli *S3) handleAWSErr(err awserr.Error, state *health.CheckState) {
+	switch err.Code() {
+	case s3.ErrCodeNoSuchBucket:
+		// Bucket does not exist
+		errBucket := ErrBucketDoesNotExist{BucketName: cli.bucketName}
+		state.Update(health.StatusCritical, errBucket.Error(), 0)
+	default:
+		// Other AWS error
+		state.Update(health.StatusCritical, err.Code(), 0)
+	}
 }

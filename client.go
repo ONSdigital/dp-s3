@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/ONSdigital/log.go/log"
 
@@ -16,17 +17,18 @@ import (
 
 // S3 client with SDK client, CryptoClient and BucketName
 type S3 struct {
-	sdkClient    S3SDKClient
-	cryptoClient S3CryptoClient
-	bucketName   string
-	region       string
+	sdkClient     S3SDKClient
+	cryptoClient  S3CryptoClient
+	bucketName    string
+	region        string
+	mutexUploadID *sync.Mutex
 }
 
 // UploadRequest represents a resumable upload request
 type UploadRequest struct {
 	UploadKey   string
 	Type        string
-	ChunkNumber int
+	ChunkNumber int64
 	TotalChunks int
 	FileName    string
 }
@@ -60,10 +62,11 @@ func New(region string, bucketName string, HasUserDefinedPSK bool) (*S3, error) 
 // Instantiate creates a new instance of S3 struct with the provided clients, bucket and region
 func Instantiate(sdkClient S3SDKClient, cryptoClient S3CryptoClient, bucketName, region string) *S3 {
 	return &S3{
-		sdkClient:    sdkClient,
-		cryptoClient: cryptoClient,
-		bucketName:   bucketName,
-		region:       region,
+		sdkClient:     sdkClient,
+		cryptoClient:  cryptoClient,
+		bucketName:    bucketName,
+		region:        region,
+		mutexUploadID: &sync.Mutex{},
 	}
 }
 
@@ -80,64 +83,26 @@ func (cli *S3) Upload(ctx context.Context, req *UploadRequest, payload []byte) e
 // UploadWithPsk handles the uploading a file to AWS S3, into the bucket configured for this client, using a user-defined psk
 func (cli *S3) UploadWithPsk(ctx context.Context, req *UploadRequest, payload []byte, psk []byte) error {
 
-	listMultiInput := &s3.ListMultipartUploadsInput{
-		Bucket: &cli.bucketName,
-	}
-
-	listMultiOutput, err := cli.sdkClient.ListMultipartUploads(listMultiInput)
+	// Get UploadID or create it if it does not exist (atomically)
+	uploadID, err := cli.doGetOrCreateMultipartUpload(ctx, req)
 	if err != nil {
-		log.Event(ctx, "error fetching multipart list", log.Error(err))
 		return err
 	}
 
-	var uploadID string
-	for _, upload := range listMultiOutput.Uploads {
-		if *upload.Key == req.UploadKey {
-			uploadID = *upload.UploadId
-		}
-	}
-
-	if len(uploadID) == 0 {
-
-		createMultiInput := &s3.CreateMultipartUploadInput{
-			Bucket:      &cli.bucketName,
-			Key:         &req.UploadKey,
-			ContentType: &req.Type,
-		}
-
-		createMultiOutput, err := cli.sdkClient.CreateMultipartUpload(createMultiInput)
-		if err != nil {
-			log.Event(ctx, "error creating multipart upload", log.Error(err))
-			return err
-		}
-
-		uploadID = *createMultiOutput.UploadId
-	}
-
-	rs := bytes.NewReader(payload)
-
-	n := int64(req.ChunkNumber)
-
-	uploadPartInput := &s3.UploadPartInput{
-		UploadId:   &uploadID,
-		Bucket:     &cli.bucketName,
-		Key:        &req.UploadKey,
-		Body:       rs,
-		PartNumber: &n,
-	}
-
-	if psk != nil {
-		_, err = cli.cryptoClient.UploadPartWithPSK(uploadPartInput, psk)
-		if err != nil {
-			log.Event(ctx, "error uploading with psk", log.Error(err))
-			return err
-		}
-	} else {
-		_, err = cli.sdkClient.UploadPart(uploadPartInput)
-		if err != nil {
-			log.Event(ctx, "error uploading part", log.Error(err))
-			return err
-		}
+	// Do the upload against AWS
+	_, err = cli.doUploadPart(
+		ctx,
+		&s3.UploadPartInput{
+			UploadId:   &uploadID,
+			Bucket:     &cli.bucketName,
+			Key:        &req.UploadKey,
+			Body:       bytes.NewReader(payload),
+			PartNumber: &req.ChunkNumber,
+		},
+		psk,
+	)
+	if err != nil {
+		return err
 	}
 
 	log.Event(ctx, "chunk accepted", log.Data{
@@ -146,24 +111,86 @@ func (cli *S3) UploadWithPsk(ctx context.Context, req *UploadRequest, payload []
 		"file_name":    req.FileName,
 	})
 
-	input := &s3.ListPartsInput{
-		Key:      &req.UploadKey,
-		Bucket:   &cli.bucketName,
-		UploadId: &uploadID,
-	}
-
-	output, err := cli.sdkClient.ListParts(input)
+	// List parts so that we can validate if the upload operation is complete
+	output, err := cli.sdkClient.ListParts(
+		&s3.ListPartsInput{
+			Key:      &req.UploadKey,
+			Bucket:   &cli.bucketName,
+			UploadId: &uploadID,
+		},
+	)
 	if err != nil {
 		log.Event(ctx, "error listing parts", log.Error(err))
 		return err
 	}
 
+	// If all parts have been uploaded, we call completeUpload
 	parts := output.Parts
 	if len(parts) == req.TotalChunks {
 		return cli.completeUpload(ctx, uploadID, req, parts)
 	}
 
+	// Otherwise we don't need to perform any other operation.
 	return nil
+}
+
+// doGetOrCreateMultipartUpload atomically gets the UploadId for the specified bucket
+// and S3 object key, and if it does not find it, it creates it.
+func (cli *S3) doGetOrCreateMultipartUpload(ctx context.Context, req *UploadRequest) (uploadID string, err error) {
+
+	cli.mutexUploadID.Lock()
+	defer cli.mutexUploadID.Unlock()
+
+	// List existing Multipart uploads for our bucket
+	listMultiOutput, err := cli.sdkClient.ListMultipartUploads(
+		&s3.ListMultipartUploadsInput{
+			Bucket: &cli.bucketName,
+		})
+	if err != nil {
+		log.Event(ctx, "error fetching multipart list", log.Error(err))
+		return "", err
+	}
+
+	// Try to find a multipart upload for the same s3 object that we want
+	for _, upload := range listMultiOutput.Uploads {
+		if *upload.Key == req.UploadKey {
+			uploadID = *upload.UploadId
+			return uploadID, nil
+		}
+	}
+
+	// If we didn't find the Multipart upload, create it
+	createMultiOutput, err := cli.sdkClient.CreateMultipartUpload(
+		&s3.CreateMultipartUploadInput{
+			Bucket:      &cli.bucketName,
+			Key:         &req.UploadKey,
+			ContentType: &req.Type,
+		})
+	if err != nil {
+		log.Event(ctx, "error creating multipart upload", log.Error(err))
+		return "", err
+	}
+	return *createMultiOutput.UploadId, nil
+}
+
+// doUploadPart performs the upload using the sdkClient if no psk is provided, or the cryptoClient if psk is provided
+func (cli *S3) doUploadPart(ctx context.Context, input *s3.UploadPartInput, psk []byte) (out *s3.UploadPartOutput, err error) {
+
+	if psk != nil {
+		// Upload Part with PSK
+		out, err = cli.cryptoClient.UploadPartWithPSK(input, psk)
+		if err != nil {
+			log.Event(ctx, "error uploading with psk", log.Error(err))
+		}
+		return
+	}
+
+	// Upload part without user-defined PSK
+	out, err = cli.sdkClient.UploadPart(input)
+	if err != nil {
+		log.Event(ctx, "error uploading part", log.Error(err))
+	}
+	return
 }
 
 // CheckUploaded check uploaded. Returns true only if the chunk corresponding to the provided chunkNumber has been uploaded.
@@ -184,6 +211,7 @@ func (cli *S3) CheckUploaded(ctx context.Context, req *UploadRequest) (bool, err
 	for _, upload := range listMultiOutput.Uploads {
 		if *upload.Key == req.UploadKey {
 			uploadID = *upload.UploadId
+			break
 		}
 	}
 	if len(uploadID) == 0 {

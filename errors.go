@@ -38,7 +38,7 @@ func (e *ErrListParts) Error() string {
 
 // ErrChunkNumberNotFound if a chunk number could not be found in an existing multipart upload.
 type ErrChunkNumberNotFound struct {
-	ChunkNumber int
+	ChunkNumber int64
 }
 
 // Error returns the error message containing the chunk num er that could not be found
