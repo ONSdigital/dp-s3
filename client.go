@@ -22,6 +22,7 @@ type S3 struct {
 	bucketName    string
 	region        string
 	mutexUploadID *sync.Mutex
+	session       *session.Session
 }
 
 // UploadPartRequest represents a part upload request
@@ -33,41 +34,51 @@ type UploadPartRequest struct {
 	FileName    string
 }
 
-// New creates a new S3 Client configured for the given region and bucket name.
+// NewClient creates a new S3 Client configured for the given region and bucket name.
 // If HasUserDefinedPSK is true, it will also have a crypto client.
-func New(region string, bucketName string, HasUserDefinedPSK bool) (*S3, error) {
-
-	// Create AWS session with the provided region
-	session, err := session.NewSession(&aws.Config{Region: &region})
+// Note: This function will create a new session, if you already have a session, please use NewUploaderWithSession instead
+func NewClient(region string, bucketName string, hasUserDefinedPSK bool) (*S3, error) {
+	s, err := session.NewSession(&aws.Config{Region: &region})
 	if err != nil {
 		return nil, err
 	}
+	return NewClientWithSession(region, bucketName, hasUserDefinedPSK, s), nil
+}
+
+// NewClientWithSession creates a new S3 Client configured for the given region and bucket name, using the provided session.
+// If HasUserDefinedPSK is true, it will also have a crypto client.
+func NewClientWithSession(region string, bucketName string, hasUserDefinedPSK bool, s *session.Session) *S3 {
 
 	// Create AWS-SDK-S3 client with the session
-	var sdkClient S3SDKClient = s3.New(session)
+	var sdkClient S3SDKClient = s3.New(s)
 
 	// If we require crypto client (HasUserDefinedPSK), create it.
 	var cryptoClient S3CryptoClient
-	if HasUserDefinedPSK {
-		cryptoClient = s3crypto.New(session, &s3crypto.Config{HasUserDefinedPSK: true})
+	if hasUserDefinedPSK {
+		cryptoClient = s3crypto.New(s, &s3crypto.Config{HasUserDefinedPSK: true})
 	}
 
-	cli := InstantiateClient(sdkClient, cryptoClient, bucketName, region)
-	return cli, nil
+	return InstantiateClient(sdkClient, cryptoClient, bucketName, region, s)
 }
 
 // InstantiateClient creates a new instance of S3 struct with the provided clients, bucket and region
-func InstantiateClient(sdkClient S3SDKClient, cryptoClient S3CryptoClient, bucketName, region string) *S3 {
+func InstantiateClient(sdkClient S3SDKClient, cryptoClient S3CryptoClient, bucketName, region string, s *session.Session) *S3 {
 	return &S3{
 		sdkClient:     sdkClient,
 		cryptoClient:  cryptoClient,
 		bucketName:    bucketName,
 		region:        region,
 		mutexUploadID: &sync.Mutex{},
+		session:       s,
 	}
 }
 
-// BucketName is a getter for the bucket name used by this S3 client
+// Session returns the Session of this client
+func (cli *S3) Session() *session.Session {
+	return cli.session
+}
+
+// BucketName returns the bucket name used by this S3 client
 func (cli *S3) BucketName() string {
 	return cli.bucketName
 }
