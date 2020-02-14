@@ -24,8 +24,8 @@ type S3 struct {
 	mutexUploadID *sync.Mutex
 }
 
-// UploadRequest represents a resumable upload request
-type UploadRequest struct {
+// UploadPartRequest represents a part upload request
+type UploadPartRequest struct {
 	UploadKey   string
 	Type        string
 	ChunkNumber int64
@@ -38,29 +38,26 @@ type UploadRequest struct {
 func New(region string, bucketName string, HasUserDefinedPSK bool) (*S3, error) {
 
 	// Create AWS session with the provided region
-	sess, err := session.NewSession(&aws.Config{Region: &region})
+	session, err := session.NewSession(&aws.Config{Region: &region})
 	if err != nil {
 		return nil, err
 	}
 
 	// Create AWS-SDK-S3 client with the session
-	sdkClient := s3.New(sess)
+	var sdkClient S3SDKClient = s3.New(session)
 
 	// If we require crypto client (HasUserDefinedPSK), create it.
 	var cryptoClient S3CryptoClient
 	if HasUserDefinedPSK {
-		cryptoConfig := &s3crypto.Config{HasUserDefinedPSK: true}
-		s3cryptoClient := s3crypto.New(sess, cryptoConfig)
-
-		cryptoClient = s3cryptoClient
+		cryptoClient = s3crypto.New(session, &s3crypto.Config{HasUserDefinedPSK: true})
 	}
 
-	cli := Instantiate(sdkClient, cryptoClient, bucketName, region)
+	cli := InstantiateClient(sdkClient, cryptoClient, bucketName, region)
 	return cli, nil
 }
 
-// Instantiate creates a new instance of S3 struct with the provided clients, bucket and region
-func Instantiate(sdkClient S3SDKClient, cryptoClient S3CryptoClient, bucketName, region string) *S3 {
+// InstantiateClient creates a new instance of S3 struct with the provided clients, bucket and region
+func InstantiateClient(sdkClient S3SDKClient, cryptoClient S3CryptoClient, bucketName, region string) *S3 {
 	return &S3{
 		sdkClient:     sdkClient,
 		cryptoClient:  cryptoClient,
@@ -75,13 +72,13 @@ func (cli *S3) BucketName() string {
 	return cli.bucketName
 }
 
-// Upload handles the uploading a file to AWS S3, into the bucket configured for this client
-func (cli *S3) Upload(ctx context.Context, req *UploadRequest, payload []byte) error {
-	return cli.UploadWithPsk(ctx, req, payload, nil)
+// UploadPart handles the uploading a file to AWS S3, into the bucket configured for this client
+func (cli *S3) UploadPart(ctx context.Context, req *UploadPartRequest, payload []byte) error {
+	return cli.UploadPartWithPsk(ctx, req, payload, nil)
 }
 
-// UploadWithPsk handles the uploading a file to AWS S3, into the bucket configured for this client, using a user-defined psk
-func (cli *S3) UploadWithPsk(ctx context.Context, req *UploadRequest, payload []byte, psk []byte) error {
+// UploadPartWithPsk handles the uploading a file to AWS S3, into the bucket configured for this client, using a user-defined psk
+func (cli *S3) UploadPartWithPsk(ctx context.Context, req *UploadPartRequest, payload []byte, psk []byte) error {
 
 	// Get UploadID or create it if it does not exist (atomically)
 	uploadID, err := cli.doGetOrCreateMultipartUpload(ctx, req)
@@ -136,7 +133,7 @@ func (cli *S3) UploadWithPsk(ctx context.Context, req *UploadRequest, payload []
 
 // doGetOrCreateMultipartUpload atomically gets the UploadId for the specified bucket
 // and S3 object key, and if it does not find it, it creates it.
-func (cli *S3) doGetOrCreateMultipartUpload(ctx context.Context, req *UploadRequest) (uploadID string, err error) {
+func (cli *S3) doGetOrCreateMultipartUpload(ctx context.Context, req *UploadPartRequest) (uploadID string, err error) {
 
 	cli.mutexUploadID.Lock()
 	defer cli.mutexUploadID.Unlock()
@@ -195,7 +192,7 @@ func (cli *S3) doUploadPart(ctx context.Context, input *s3.UploadPartInput, psk 
 
 // CheckUploaded check uploaded. Returns true only if the chunk corresponding to the provided chunkNumber has been uploaded.
 // If all the chunks have been uploaded, we complete the upload operation.
-func (cli *S3) CheckUploaded(ctx context.Context, req *UploadRequest) (bool, error) {
+func (cli *S3) CheckUploaded(ctx context.Context, req *UploadPartRequest) (bool, error) {
 
 	listMultiInput := &s3.ListMultipartUploadsInput{
 		Bucket: &cli.bucketName,
@@ -254,7 +251,7 @@ func (cli *S3) CheckUploaded(ctx context.Context, req *UploadRequest) (bool, err
 }
 
 // completeUpload if all parts have been uploaded, we complete the multipart upload.
-func (cli *S3) completeUpload(ctx context.Context, uploadID string, req *UploadRequest, parts []*s3.Part) error {
+func (cli *S3) completeUpload(ctx context.Context, uploadID string, req *UploadPartRequest, parts []*s3.Part) error {
 	var completedParts []*s3.CompletedPart
 
 	for _, part := range parts {

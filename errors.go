@@ -45,3 +45,15 @@ type ErrChunkNumberNotFound struct {
 func (e *ErrChunkNumberNotFound) Error() string {
 	return fmt.Sprintf("Chunk number %d not found", e.ChunkNumber)
 }
+
+// ErrInvalidUploader is the error returned when the user tries to execute an operation with the the wrong type of Uploader
+type ErrInvalidUploader struct {
+	expectCrypto bool
+}
+
+func (e *ErrInvalidUploader) Error() string {
+	if e.expectCrypto {
+		return fmt.Sprintf("Expected Crypto Uploader, but uploader was initialised with only AWS SDK Uploader")
+	}
+	return fmt.Sprintf("Expected AWS SDK Uploader, but uploader was initialised with only Crypto Uploader")
+}

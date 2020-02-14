@@ -2,12 +2,13 @@ package s3client
 
 import (
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 //go:generate moq -out ./mock/s3-sdk.go -pkg mock . S3SDKClient
 //go:generate moq -out ./mock/s3-crypto.go -pkg mock . S3CryptoClient
 
-// S3SDKClient represents the client with methods required to upload a multipart upload to s3
+// S3SDKClient represents the sdk client with methods required by dp-s3 client
 type S3SDKClient interface {
 	ListMultipartUploads(*s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error)
 	ListParts(*s3.ListPartsInput) (*s3.ListPartsOutput, error)
@@ -18,7 +19,17 @@ type S3SDKClient interface {
 	GetObject(input *s3.GetObjectInput) (*s3.GetObjectOutput, error)
 }
 
+// S3SDKUploader represents the sdk uploader with methods required by dp-s3 client
+type S3SDKUploader interface {
+	Upload(*s3manager.UploadInput, ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
+}
+
 // S3CryptoClient represents the cryptoclient with methods required to upload parts with encryption
 type S3CryptoClient interface {
 	UploadPartWithPSK(*s3.UploadPartInput, []byte) (*s3.UploadPartOutput, error)
+}
+
+// S3CryptoUploader represents the s3crypto Uploader with methods required to upload parts with encryption
+type S3CryptoUploader interface {
+	UploadWithPSK(*s3manager.UploadInput, []byte) (*s3manager.UploadOutput, error)
 }

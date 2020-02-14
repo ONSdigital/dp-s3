@@ -54,7 +54,7 @@ func TestBucketOk(t *testing.T) {
 		sdkMock := &mock.S3SDKClientMock{
 			ListObjectsV2Func: bucketExists,
 		}
-		s3Cli := s3client.Instantiate(sdkMock, nil, ExistingBucket, ExpectedRegion)
+		s3Cli := s3client.InstantiateClient(sdkMock, nil, ExistingBucket, ExpectedRegion)
 
 		// CheckState for test validation
 		checkState := health.NewCheckState(s3client.ServiceName)
@@ -76,7 +76,7 @@ func TestBucketDoesNotExist(t *testing.T) {
 		sdkMock := &mock.S3SDKClientMock{
 			ListObjectsV2Func: bucketDoesNotExist,
 		}
-		s3Cli := s3client.Instantiate(sdkMock, nil, InexistentBucket, ExpectedRegion)
+		s3Cli := s3client.InstantiateClient(sdkMock, nil, InexistentBucket, ExpectedRegion)
 
 		// CheckState for test validation
 		checkState := health.NewCheckState(s3client.ServiceName)
@@ -99,7 +99,7 @@ func TestBucketUnexpectedRegion(t *testing.T) {
 		sdkMock := &mock.S3SDKClientMock{
 			ListObjectsV2Func: bucketWrongRegion,
 		}
-		s3Cli := s3client.Instantiate(sdkMock, nil, ExistingBucket, UnexpectedRegion)
+		s3Cli := s3client.InstantiateClient(sdkMock, nil, ExistingBucket, UnexpectedRegion)
 
 		// CheckState for test validation
 		checkState := health.NewCheckState(s3client.ServiceName)
@@ -122,7 +122,7 @@ func TestBucketInexistentRegion(t *testing.T) {
 		sdkMock := &mock.S3SDKClientMock{
 			ListObjectsV2Func: bucketInexistentRegion,
 		}
-		s3Cli := s3client.Instantiate(sdkMock, nil, ExistingBucket, InexistentRegion)
+		s3Cli := s3client.InstantiateClient(sdkMock, nil, ExistingBucket, InexistentRegion)
 
 		// CheckState for test validation
 		checkState := health.NewCheckState(s3client.ServiceName)

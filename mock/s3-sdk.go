@@ -6,6 +6,7 @@ package mock
 import (
 	"github.com/ONSdigital/dp-s3"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"sync"
 )
 
@@ -16,6 +17,7 @@ var (
 	lockS3SDKClientMockListMultipartUploads    sync.RWMutex
 	lockS3SDKClientMockListObjectsV2           sync.RWMutex
 	lockS3SDKClientMockListParts               sync.RWMutex
+	lockS3SDKClientMockUpload                  sync.RWMutex
 	lockS3SDKClientMockUploadPart              sync.RWMutex
 )
 
@@ -47,6 +49,9 @@ var _ s3client.S3SDKClient = &S3SDKClientMock{}
 //             ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
 // 	               panic("mock out the ListParts method")
 //             },
+//             UploadFunc: func(in1 *s3manager.UploadInput, in2 ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+// 	               panic("mock out the Upload method")
+//             },
 //             UploadPartFunc: func(in1 *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
 // 	               panic("mock out the UploadPart method")
 //             },
@@ -74,6 +79,9 @@ type S3SDKClientMock struct {
 
 	// ListPartsFunc mocks the ListParts method.
 	ListPartsFunc func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error)
+
+	// UploadFunc mocks the Upload method.
+	UploadFunc func(in1 *s3manager.UploadInput, in2 ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
 
 	// UploadPartFunc mocks the UploadPart method.
 	UploadPartFunc func(in1 *s3.UploadPartInput) (*s3.UploadPartOutput, error)
@@ -109,6 +117,13 @@ type S3SDKClientMock struct {
 		ListParts []struct {
 			// In1 is the in1 argument value.
 			In1 *s3.ListPartsInput
+		}
+		// Upload holds details about calls to the Upload method.
+		Upload []struct {
+			// In1 is the in1 argument value.
+			In1 *s3manager.UploadInput
+			// In2 is the in2 argument value.
+			In2 []func(*s3manager.Uploader)
 		}
 		// UploadPart holds details about calls to the UploadPart method.
 		UploadPart []struct {
@@ -301,6 +316,41 @@ func (mock *S3SDKClientMock) ListPartsCalls() []struct {
 	lockS3SDKClientMockListParts.RLock()
 	calls = mock.calls.ListParts
 	lockS3SDKClientMockListParts.RUnlock()
+	return calls
+}
+
+// Upload calls UploadFunc.
+func (mock *S3SDKClientMock) Upload(in1 *s3manager.UploadInput, in2 ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+	if mock.UploadFunc == nil {
+		panic("S3SDKClientMock.UploadFunc: method is nil but S3SDKClient.Upload was just called")
+	}
+	callInfo := struct {
+		In1 *s3manager.UploadInput
+		In2 []func(*s3manager.Uploader)
+	}{
+		In1: in1,
+		In2: in2,
+	}
+	lockS3SDKClientMockUpload.Lock()
+	mock.calls.Upload = append(mock.calls.Upload, callInfo)
+	lockS3SDKClientMockUpload.Unlock()
+	return mock.UploadFunc(in1, in2...)
+}
+
+// UploadCalls gets all the calls that were made to Upload.
+// Check the length with:
+//     len(mockedS3SDKClient.UploadCalls())
+func (mock *S3SDKClientMock) UploadCalls() []struct {
+	In1 *s3manager.UploadInput
+	In2 []func(*s3manager.Uploader)
+} {
+	var calls []struct {
+		In1 *s3manager.UploadInput
+		In2 []func(*s3manager.Uploader)
+	}
+	lockS3SDKClientMockUpload.RLock()
+	calls = mock.calls.Upload
+	lockS3SDKClientMockUpload.RUnlock()
 	return calls
 }
 
