@@ -201,9 +201,9 @@ func (cli *S3) doUploadPart(ctx context.Context, input *s3.UploadPartInput, psk 
 	return
 }
 
-// CheckUploaded check uploaded. Returns true only if the chunk corresponding to the provided chunkNumber has been uploaded.
+// CheckPartUploaded returns true only if the chunk corresponding to the provided chunkNumber has been uploaded.
 // If all the chunks have been uploaded, we complete the upload operation.
-func (cli *S3) CheckUploaded(ctx context.Context, req *UploadPartRequest) (bool, error) {
+func (cli *S3) CheckPartUploaded(ctx context.Context, req *UploadPartRequest) (bool, error) {
 
 	listMultiInput := &s3.ListMultipartUploadsInput{
 		Bucket: &cli.bucketName,

@@ -278,7 +278,7 @@ func TestCheckUpload(t *testing.T) {
 
 			// Instantiate and call CheckUpload
 			s3Cli := s3client.InstantiateClient(sdkMock, nil, bucket, ExpectedRegion, nil)
-			ok, err := s3Cli.CheckUploaded(context.Background(), &s3client.UploadPartRequest{
+			ok, err := s3Cli.CheckPartUploaded(context.Background(), &s3client.UploadPartRequest{
 				UploadKey:   "12345",
 				Type:        "text/plain",
 				ChunkNumber: 1,
@@ -304,7 +304,7 @@ func TestCheckUpload(t *testing.T) {
 
 			// Instantiate and call CheckUpload
 			s3Cli := s3client.InstantiateClient(sdkMock, nil, bucket, ExpectedRegion, nil)
-			ok, err := s3Cli.CheckUploaded(context.Background(), &s3client.UploadPartRequest{
+			ok, err := s3Cli.CheckPartUploaded(context.Background(), &s3client.UploadPartRequest{
 				UploadKey:   "12345",
 				Type:        "text/plain",
 				ChunkNumber: 1,
@@ -338,7 +338,7 @@ func TestCheckUpload(t *testing.T) {
 
 			// Instantiate and call CheckUpload
 			s3Cli := s3client.InstantiateClient(sdkMock, nil, bucket, ExpectedRegion, nil)
-			ok, err := s3Cli.CheckUploaded(context.Background(), &s3client.UploadPartRequest{
+			ok, err := s3Cli.CheckPartUploaded(context.Background(), &s3client.UploadPartRequest{
 				UploadKey:   expectedKey,
 				Type:        "text/plain",
 				ChunkNumber: 1,
@@ -371,7 +371,7 @@ func TestCheckUpload(t *testing.T) {
 
 			// Instantiate and call CheckUpload
 			s3Cli := s3client.InstantiateClient(sdkMock, nil, bucket, ExpectedRegion, nil)
-			ok, err := s3Cli.CheckUploaded(context.Background(), &s3client.UploadPartRequest{
+			ok, err := s3Cli.CheckPartUploaded(context.Background(), &s3client.UploadPartRequest{
 				UploadKey:   expectedKey,
 				Type:        "text/plain",
 				ChunkNumber: 1,
@@ -407,7 +407,7 @@ func TestCheckUpload(t *testing.T) {
 
 			// Instantiate and call CheckUpload
 			s3Cli := s3client.InstantiateClient(sdkMock, nil, bucket, ExpectedRegion, nil)
-			ok, err := s3Cli.CheckUploaded(context.Background(), &s3client.UploadPartRequest{
+			ok, err := s3Cli.CheckPartUploaded(context.Background(), &s3client.UploadPartRequest{
 				UploadKey:   expectedKey,
 				Type:        "text/plain",
 				ChunkNumber: 1,
@@ -446,7 +446,7 @@ func TestCheckUpload(t *testing.T) {
 
 			// Instantiate and call CheckUpload
 			s3Cli := s3client.InstantiateClient(sdkMock, nil, bucket, ExpectedRegion, nil)
-			ok, err := s3Cli.CheckUploaded(context.Background(), &s3client.UploadPartRequest{
+			ok, err := s3Cli.CheckPartUploaded(context.Background(), &s3client.UploadPartRequest{
 				UploadKey:   expectedKey,
 				Type:        "text/plain",
 				ChunkNumber: 1,
