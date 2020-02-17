@@ -6,13 +6,11 @@ package mock
 import (
 	"github.com/ONSdigital/dp-s3"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"sync"
 )
 
 var (
 	lockS3CryptoClientMockUploadPartWithPSK sync.RWMutex
-	lockS3CryptoClientMockUploadWithPSK     sync.RWMutex
 )
 
 // Ensure, that S3CryptoClientMock does implement s3client.S3CryptoClient.
@@ -28,9 +26,6 @@ var _ s3client.S3CryptoClient = &S3CryptoClientMock{}
 //             UploadPartWithPSKFunc: func(in1 *s3.UploadPartInput, in2 []byte) (*s3.UploadPartOutput, error) {
 // 	               panic("mock out the UploadPartWithPSK method")
 //             },
-//             UploadWithPSKFunc: func(in1 *s3manager.UploadInput, in2 []byte) (*s3manager.UploadOutput, error) {
-// 	               panic("mock out the UploadWithPSK method")
-//             },
 //         }
 //
 //         // use mockedS3CryptoClient in code that requires s3client.S3CryptoClient
@@ -41,22 +36,12 @@ type S3CryptoClientMock struct {
 	// UploadPartWithPSKFunc mocks the UploadPartWithPSK method.
 	UploadPartWithPSKFunc func(in1 *s3.UploadPartInput, in2 []byte) (*s3.UploadPartOutput, error)
 
-	// UploadWithPSKFunc mocks the UploadWithPSK method.
-	UploadWithPSKFunc func(in1 *s3manager.UploadInput, in2 []byte) (*s3manager.UploadOutput, error)
-
 	// calls tracks calls to the methods.
 	calls struct {
 		// UploadPartWithPSK holds details about calls to the UploadPartWithPSK method.
 		UploadPartWithPSK []struct {
 			// In1 is the in1 argument value.
 			In1 *s3.UploadPartInput
-			// In2 is the in2 argument value.
-			In2 []byte
-		}
-		// UploadWithPSK holds details about calls to the UploadWithPSK method.
-		UploadWithPSK []struct {
-			// In1 is the in1 argument value.
-			In1 *s3manager.UploadInput
 			// In2 is the in2 argument value.
 			In2 []byte
 		}
@@ -95,40 +80,5 @@ func (mock *S3CryptoClientMock) UploadPartWithPSKCalls() []struct {
 	lockS3CryptoClientMockUploadPartWithPSK.RLock()
 	calls = mock.calls.UploadPartWithPSK
 	lockS3CryptoClientMockUploadPartWithPSK.RUnlock()
-	return calls
-}
-
-// UploadWithPSK calls UploadWithPSKFunc.
-func (mock *S3CryptoClientMock) UploadWithPSK(in1 *s3manager.UploadInput, in2 []byte) (*s3manager.UploadOutput, error) {
-	if mock.UploadWithPSKFunc == nil {
-		panic("S3CryptoClientMock.UploadWithPSKFunc: method is nil but S3CryptoClient.UploadWithPSK was just called")
-	}
-	callInfo := struct {
-		In1 *s3manager.UploadInput
-		In2 []byte
-	}{
-		In1: in1,
-		In2: in2,
-	}
-	lockS3CryptoClientMockUploadWithPSK.Lock()
-	mock.calls.UploadWithPSK = append(mock.calls.UploadWithPSK, callInfo)
-	lockS3CryptoClientMockUploadWithPSK.Unlock()
-	return mock.UploadWithPSKFunc(in1, in2)
-}
-
-// UploadWithPSKCalls gets all the calls that were made to UploadWithPSK.
-// Check the length with:
-//     len(mockedS3CryptoClient.UploadWithPSKCalls())
-func (mock *S3CryptoClientMock) UploadWithPSKCalls() []struct {
-	In1 *s3manager.UploadInput
-	In2 []byte
-} {
-	var calls []struct {
-		In1 *s3manager.UploadInput
-		In2 []byte
-	}
-	lockS3CryptoClientMockUploadWithPSK.RLock()
-	calls = mock.calls.UploadWithPSK
-	lockS3CryptoClientMockUploadWithPSK.RUnlock()
 	return calls
 }

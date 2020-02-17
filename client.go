@@ -50,7 +50,7 @@ func NewClient(region string, bucketName string, hasUserDefinedPSK bool) (*S3, e
 func NewClientWithSession(region string, bucketName string, hasUserDefinedPSK bool, s *session.Session) *S3 {
 
 	// Create AWS-SDK-S3 client with the session
-	var sdkClient S3SDKClient = s3.New(s)
+	sdkClient := s3.New(s)
 
 	// If we require crypto client (HasUserDefinedPSK), create it.
 	var cryptoClient S3CryptoClient

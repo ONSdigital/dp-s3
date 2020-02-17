@@ -2,7 +2,6 @@ package s3client
 
 import (
 	"context"
-	"fmt"
 
 	health "github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -14,16 +13,6 @@ const ServiceName = "S3"
 
 // MsgHealthy is the message in the Check structure when S3 is healthy
 const MsgHealthy = "S3 is healthy"
-
-// ErrBucketDoesNotExist is an Error to handle failures getting the S3 bucket
-type ErrBucketDoesNotExist struct {
-	BucketName string
-}
-
-// Error returns the error message with the bucket name
-func (e *ErrBucketDoesNotExist) Error() string {
-	return fmt.Sprintf("Bucket %s does not exist", e.BucketName)
-}
 
 // Checker validates that the S3 bucket exists, and updates the provided CheckState accordingly
 func (cli *S3) Checker(ctx context.Context, state *health.CheckState) error {

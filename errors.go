@@ -16,6 +16,16 @@ func (e *ErrUnexpectedBucket) Error() string {
 		e.BucketName, e.ExpectedBucketName)
 }
 
+// ErrBucketDoesNotExist if the bucket configured for this client does not exist
+type ErrBucketDoesNotExist struct {
+	BucketName string
+}
+
+// Error returns the error message with the bucket name
+func (e *ErrBucketDoesNotExist) Error() string {
+	return fmt.Sprintf("Bucket %s does not exist", e.BucketName)
+}
+
 // ErrNotUploaded if an s3Key could not be found in ListMultipartUploads
 type ErrNotUploaded struct {
 	UploadKey string
@@ -48,11 +58,11 @@ func (e *ErrChunkNumberNotFound) Error() string {
 
 // ErrInvalidUploader is the error returned when the user tries to execute an operation with the the wrong type of Uploader
 type ErrInvalidUploader struct {
-	expectCrypto bool
+	ExpectCrypto bool
 }
 
 func (e *ErrInvalidUploader) Error() string {
-	if e.expectCrypto {
+	if e.ExpectCrypto {
 		return fmt.Sprintf("Expected Crypto Uploader, but uploader was initialised with only AWS SDK Uploader")
 	}
 	return fmt.Sprintf("Expected AWS SDK Uploader, but uploader was initialised with only Crypto Uploader")
