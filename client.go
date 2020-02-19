@@ -42,15 +42,18 @@ func NewClient(region string, bucketName string, hasUserDefinedPSK bool) (*S3, e
 	if err != nil {
 		return nil, err
 	}
-	return NewClientWithSession(region, bucketName, hasUserDefinedPSK, s), nil
+	return NewClientWithSession(bucketName, hasUserDefinedPSK, s), nil
 }
 
-// NewClientWithSession creates a new S3 Client configured for the given region and bucket name, using the provided session.
+// NewClientWithSession creates a new S3 Client configured for the given bucket name, using the provided session and region within it.
 // If HasUserDefinedPSK is true, it will also have a crypto client.
-func NewClientWithSession(region string, bucketName string, hasUserDefinedPSK bool, s *session.Session) *S3 {
+func NewClientWithSession(bucketName string, hasUserDefinedPSK bool, s *session.Session) *S3 {
 
 	// Create AWS-SDK-S3 client with the session
 	sdkClient := s3.New(s)
+
+	// Get region for the Session config
+	region := s.Config.Region
 
 	// If we require crypto client (HasUserDefinedPSK), create it.
 	var cryptoClient S3CryptoClient
@@ -58,7 +61,7 @@ func NewClientWithSession(region string, bucketName string, hasUserDefinedPSK bo
 		cryptoClient = s3crypto.New(s, &s3crypto.Config{HasUserDefinedPSK: true})
 	}
 
-	return InstantiateClient(sdkClient, cryptoClient, bucketName, region, s)
+	return InstantiateClient(sdkClient, cryptoClient, bucketName, *region, s)
 }
 
 // InstantiateClient creates a new instance of S3 struct with the provided clients, bucket and region

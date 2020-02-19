@@ -22,15 +22,15 @@ func NewUploader(region string, bucketName string, hasUserDefinedPSK bool) (*Upl
 	if err != nil {
 		return nil, err
 	}
-	return NewUploaderWithSession(region, bucketName, hasUserDefinedPSK, s), nil
+	return NewUploaderWithSession(bucketName, hasUserDefinedPSK, s), nil
 }
 
-// NewUploaderWithSession creates a new Uploader configured for the given region and bucket name, using the provided session.
+// NewUploaderWithSession creates a new Uploader configured for the given bucket name, using the provided session and region within it.
 // If hasUserDefinedPSK is true, it will be a crypto uploader client, otherwise it will be a vanilla S3 SDK Uploader.
-func NewUploaderWithSession(region string, bucketName string, hasUserDefinedPSK bool, s *session.Session) *Uploader {
+func NewUploaderWithSession(bucketName string, hasUserDefinedPSK bool, s *session.Session) *Uploader {
 
 	// Create base S3 client using the provided session
-	s3Client := NewClientWithSession(region, bucketName, hasUserDefinedPSK, s)
+	s3Client := NewClientWithSession(bucketName, hasUserDefinedPSK, s)
 
 	// If we require crypto client (HasUserDefinedPSK), create it.
 	if hasUserDefinedPSK {
