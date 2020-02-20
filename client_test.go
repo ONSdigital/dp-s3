@@ -32,6 +32,7 @@ func TestGet(t *testing.T) {
 
 		payload := []byte("test data")
 		bucket := "myBucket"
+		objKey := "my/object/key"
 		region := "eu-north-1"
 
 		sdkMock := &mock.S3SDKClientMock{
@@ -45,12 +46,53 @@ func TestGet(t *testing.T) {
 		s3Cli := s3client.InstantiateClient(sdkMock, nil, bucket, region, nil)
 
 		Convey("Get returns an io.Reader with the expected payload", func() {
-			ret, err := s3Cli.Get("objectKey")
+			ret, err := s3Cli.Get(objKey)
 			So(err, ShouldBeNil)
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(ret)
 			ret.Close()
 			So(buf.Bytes(), ShouldResemble, payload)
+			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 1)
+			So(sdkMock.GetObjectCalls()[0].In1, ShouldResemble, &s3.GetObjectInput{
+				Bucket: &bucket,
+				Key:    &objKey,
+			})
+		})
+	})
+}
+
+func TestGetWithPSK(t *testing.T) {
+	Convey("Given an S3 client configured with a bucket, region and psk", t, func() {
+
+		psk := []byte("test psk")
+		payload := []byte("test data")
+		bucket := "myBucket"
+		objKey := "my/object/key"
+		region := "eu-north-1"
+
+		cryptoMock := &mock.S3CryptoClientMock{
+			GetObjectWithPSKFunc: func(input *s3.GetObjectInput, inPsk []byte) (*s3.GetObjectOutput, error) {
+				return &s3.GetObjectOutput{
+					Body: ioutil.NopCloser(bytes.NewReader(payload)),
+				}, nil
+			},
+		}
+
+		s3Cli := s3client.InstantiateClient(nil, cryptoMock, bucket, region, nil)
+
+		Convey("GetWithPSK returns an io.Reader with the expected payload", func() {
+			ret, err := s3Cli.GetWithPSK(objKey, psk)
+			So(err, ShouldBeNil)
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(ret)
+			ret.Close()
+			So(buf.Bytes(), ShouldResemble, payload)
+			So(len(cryptoMock.GetObjectWithPSKCalls()), ShouldEqual, 1)
+			So(cryptoMock.GetObjectWithPSKCalls()[0].In2, ShouldResemble, psk)
+			So(cryptoMock.GetObjectWithPSKCalls()[0].In1, ShouldResemble, &s3.GetObjectInput{
+				Bucket: &bucket,
+				Key:    &objKey,
+			})
 		})
 	})
 }

@@ -341,6 +341,23 @@ func (cli *S3) Get(key string) (io.ReadCloser, error) {
 	return result.Body, nil
 }
 
+// GetWithPSK returns an io.ReadCloser instance for the given path (inside the bucket configured for this client), using the provided PSK.
+// The 'key' parameter refers to the path for the file under the bucket.
+func (cli *S3) GetWithPSK(key string, psk []byte) (io.ReadCloser, error) {
+
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(cli.bucketName),
+		Key:    aws.String(key),
+	}
+
+	result, err := cli.cryptoClient.GetObjectWithPSK(input, psk)
+	if err != nil {
+		return nil, err
+	}
+
+	return result.Body, nil
+}
+
 // ValidateBucket checks that the bucket exists and returns an error if it
 // does not exist or there was some other error trying to get this information.
 func (cli *S3) ValidateBucket() error {

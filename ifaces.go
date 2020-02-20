@@ -24,6 +24,7 @@ type S3SDKClient interface {
 // S3CryptoClient represents the cryptoclient with methods required to upload parts with encryption
 type S3CryptoClient interface {
 	UploadPartWithPSK(*s3.UploadPartInput, []byte) (*s3.UploadPartOutput, error)
+	GetObjectWithPSK(*s3.GetObjectInput, []byte) (*s3.GetObjectOutput, error)
 }
 
 // S3SDKUploader represents the sdk uploader with methods required by dp-s3 client

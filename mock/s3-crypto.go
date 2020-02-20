@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	lockS3CryptoClientMockGetObjectWithPSK  sync.RWMutex
 	lockS3CryptoClientMockUploadPartWithPSK sync.RWMutex
 )
 
@@ -23,6 +24,9 @@ var _ s3client.S3CryptoClient = &S3CryptoClientMock{}
 //
 //         // make and configure a mocked s3client.S3CryptoClient
 //         mockedS3CryptoClient := &S3CryptoClientMock{
+//             GetObjectWithPSKFunc: func(in1 *s3.GetObjectInput, in2 []byte) (*s3.GetObjectOutput, error) {
+// 	               panic("mock out the GetObjectWithPSK method")
+//             },
 //             UploadPartWithPSKFunc: func(in1 *s3.UploadPartInput, in2 []byte) (*s3.UploadPartOutput, error) {
 // 	               panic("mock out the UploadPartWithPSK method")
 //             },
@@ -33,11 +37,21 @@ var _ s3client.S3CryptoClient = &S3CryptoClientMock{}
 //
 //     }
 type S3CryptoClientMock struct {
+	// GetObjectWithPSKFunc mocks the GetObjectWithPSK method.
+	GetObjectWithPSKFunc func(in1 *s3.GetObjectInput, in2 []byte) (*s3.GetObjectOutput, error)
+
 	// UploadPartWithPSKFunc mocks the UploadPartWithPSK method.
 	UploadPartWithPSKFunc func(in1 *s3.UploadPartInput, in2 []byte) (*s3.UploadPartOutput, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// GetObjectWithPSK holds details about calls to the GetObjectWithPSK method.
+		GetObjectWithPSK []struct {
+			// In1 is the in1 argument value.
+			In1 *s3.GetObjectInput
+			// In2 is the in2 argument value.
+			In2 []byte
+		}
 		// UploadPartWithPSK holds details about calls to the UploadPartWithPSK method.
 		UploadPartWithPSK []struct {
 			// In1 is the in1 argument value.
@@ -46,6 +60,41 @@ type S3CryptoClientMock struct {
 			In2 []byte
 		}
 	}
+}
+
+// GetObjectWithPSK calls GetObjectWithPSKFunc.
+func (mock *S3CryptoClientMock) GetObjectWithPSK(in1 *s3.GetObjectInput, in2 []byte) (*s3.GetObjectOutput, error) {
+	if mock.GetObjectWithPSKFunc == nil {
+		panic("S3CryptoClientMock.GetObjectWithPSKFunc: method is nil but S3CryptoClient.GetObjectWithPSK was just called")
+	}
+	callInfo := struct {
+		In1 *s3.GetObjectInput
+		In2 []byte
+	}{
+		In1: in1,
+		In2: in2,
+	}
+	lockS3CryptoClientMockGetObjectWithPSK.Lock()
+	mock.calls.GetObjectWithPSK = append(mock.calls.GetObjectWithPSK, callInfo)
+	lockS3CryptoClientMockGetObjectWithPSK.Unlock()
+	return mock.GetObjectWithPSKFunc(in1, in2)
+}
+
+// GetObjectWithPSKCalls gets all the calls that were made to GetObjectWithPSK.
+// Check the length with:
+//     len(mockedS3CryptoClient.GetObjectWithPSKCalls())
+func (mock *S3CryptoClientMock) GetObjectWithPSKCalls() []struct {
+	In1 *s3.GetObjectInput
+	In2 []byte
+} {
+	var calls []struct {
+		In1 *s3.GetObjectInput
+		In2 []byte
+	}
+	lockS3CryptoClientMockGetObjectWithPSK.RLock()
+	calls = mock.calls.GetObjectWithPSK
+	lockS3CryptoClientMockGetObjectWithPSK.RUnlock()
+	return calls
 }
 
 // UploadPartWithPSK calls UploadPartWithPSKFunc.
