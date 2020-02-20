@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"net/url"
 	"testing"
 
 	s3client "github.com/ONSdigital/dp-s3"
@@ -58,6 +60,36 @@ func TestGet(t *testing.T) {
 				Key:    &objKey,
 			})
 		})
+
+		Convey("GetFromS3URL called with a valid hosted style URL returns an io.Reader with the expected payload", func() {
+			validHostedURL := fmt.Sprintf("s3://%s/%s", bucket, objKey)
+			ret, err := s3Cli.GetFromS3URL(validHostedURL)
+			So(err, ShouldBeNil)
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(ret)
+			ret.Close()
+			So(buf.Bytes(), ShouldResemble, payload)
+			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 1)
+			So(sdkMock.GetObjectCalls()[0].In1, ShouldResemble, &s3.GetObjectInput{
+				Bucket: &bucket,
+				Key:    &objKey,
+			})
+		})
+
+		Convey("GetFromS3URL called with a valid hosted style URL with the wrong bucket returns ErrUnexpectedBucket", func() {
+			wrongBucketURL := fmt.Sprintf("s3://%s/%s", "wrongBucket", objKey)
+			_, err := s3Cli.GetFromS3URL(wrongBucketURL)
+			So(err, ShouldResemble, &s3client.ErrUnexpectedBucket{ExpectedBucketName: bucket, BucketName: "wrongBucket"})
+			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 0)
+		})
+
+		Convey("GetFromS3URL called with a malformed URL returns error", func() {
+			malformedURL := "This%Url%Is%Malformed"
+			_, err := s3Cli.GetFromS3URL(malformedURL)
+			So(err, ShouldResemble, &url.Error{Op: "parse", URL: malformedURL, Err: url.EscapeError("%Ur")})
+			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 0)
+		})
+
 	})
 }
 
@@ -93,6 +125,40 @@ func TestGetWithPSK(t *testing.T) {
 				Bucket: &bucket,
 				Key:    &objKey,
 			})
+		})
+	})
+}
+
+func TestPutWithPSK(t *testing.T) {
+
+	Convey("Given an S3 client configured with a bucket, region and psk", t, func() {
+
+		psk := []byte("test psk")
+		payload := []byte("test data")
+		bucket := "myBucket"
+		objKey := "my/object/key"
+		region := "eu-north-1"
+
+		payloadReader := bytes.NewReader(payload)
+
+		cryptoMock := &mock.S3CryptoClientMock{
+			PutObjectWithPSKFunc: func(in1 *s3.PutObjectInput, in2 []byte) (*s3.PutObjectOutput, error) {
+				return &s3.PutObjectOutput{}, nil
+			},
+		}
+
+		s3Cli := s3client.InstantiateClient(nil, cryptoMock, bucket, region, nil)
+
+		Convey("PutWithPSK calls the expected cryptoClient with provided key, reader and client-configured bucket", func() {
+			err := s3Cli.PutWithPSK(&objKey, payloadReader, psk)
+			So(err, ShouldBeNil)
+			So(len(cryptoMock.PutObjectWithPSKCalls()), ShouldEqual, 1)
+			So(cryptoMock.PutObjectWithPSKCalls()[0].In1, ShouldResemble, &s3.PutObjectInput{
+				Bucket: &bucket,
+				Key:    &objKey,
+				Body:   payloadReader,
+			})
+			So(cryptoMock.PutObjectWithPSKCalls()[0].In2, ShouldResemble, psk)
 		})
 	})
 }

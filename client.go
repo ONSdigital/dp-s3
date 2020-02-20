@@ -358,6 +358,20 @@ func (cli *S3) GetWithPSK(key string, psk []byte) (io.ReadCloser, error) {
 	return result.Body, nil
 }
 
+// PutWithPSK uploads the provided contents to the key in the bucket configured for this client, using the provided PSK.
+// The 'key' parameter refers to the path for the file under the bucket.
+func (cli *S3) PutWithPSK(key *string, reader *bytes.Reader, psk []byte) error {
+
+	input := &s3.PutObjectInput{
+		Body:   reader,
+		Key:    key,
+		Bucket: &cli.bucketName,
+	}
+
+	_, err := cli.cryptoClient.PutObjectWithPSK(input, psk)
+	return err
+}
+
 // ValidateBucket checks that the bucket exists and returns an error if it
 // does not exist or there was some other error trying to get this information.
 func (cli *S3) ValidateBucket() error {
