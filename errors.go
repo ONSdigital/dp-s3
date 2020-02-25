@@ -16,14 +16,14 @@ func (e *ErrUnexpectedBucket) Error() string {
 		e.BucketName, e.ExpectedBucketName)
 }
 
-// ErrBucketDoesNotExist if the bucket configured for this client does not exist
-type ErrBucketDoesNotExist struct {
+// ErrBucketNotFound if the bucket configured for this client does not exist
+type ErrBucketNotFound struct {
 	BucketName string
 }
 
 // Error returns the error message with the bucket name
-func (e *ErrBucketDoesNotExist) Error() string {
-	return fmt.Sprintf("Bucket %s does not exist", e.BucketName)
+func (e *ErrBucketNotFound) Error() string {
+	return fmt.Sprintf("Bucket %s not found", e.BucketName)
 }
 
 // ErrNotUploaded if an s3Key could not be found in ListMultipartUploads

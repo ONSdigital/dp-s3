@@ -120,7 +120,7 @@ func (cli *S3) UploadPartWithPsk(ctx context.Context, req *UploadPartRequest, pa
 		"chunk_number": req.ChunkNumber,
 		"max_chunks":   req.TotalChunks,
 		"file_name":    req.FileName,
-	})
+	}, log.INFO)
 
 	// List parts so that we can validate if the upload operation is complete
 	output, err := cli.sdkClient.ListParts(
@@ -131,7 +131,7 @@ func (cli *S3) UploadPartWithPsk(ctx context.Context, req *UploadPartRequest, pa
 		},
 	)
 	if err != nil {
-		log.Event(ctx, "error listing parts", log.Error(err))
+		log.Event(ctx, "error listing parts", log.ERROR, log.Error(err))
 		return err
 	}
 
@@ -158,7 +158,7 @@ func (cli *S3) doGetOrCreateMultipartUpload(ctx context.Context, req *UploadPart
 			Bucket: &cli.bucketName,
 		})
 	if err != nil {
-		log.Event(ctx, "error fetching multipart list", log.Error(err))
+		log.Event(ctx, "error fetching multipart list", log.ERROR, log.Error(err))
 		return "", err
 	}
 
@@ -178,7 +178,7 @@ func (cli *S3) doGetOrCreateMultipartUpload(ctx context.Context, req *UploadPart
 			ContentType: &req.Type,
 		})
 	if err != nil {
-		log.Event(ctx, "error creating multipart upload", log.Error(err))
+		log.Event(ctx, "error creating multipart upload", log.ERROR, log.Error(err))
 		return "", err
 	}
 	return *createMultiOutput.UploadId, nil
@@ -191,7 +191,7 @@ func (cli *S3) doUploadPart(ctx context.Context, input *s3.UploadPartInput, psk 
 		// Upload Part with PSK
 		out, err = cli.cryptoClient.UploadPartWithPSK(input, psk)
 		if err != nil {
-			log.Event(ctx, "error uploading with psk", log.Error(err))
+			log.Event(ctx, "error uploading with psk", log.ERROR, log.Error(err))
 		}
 		return
 	}
@@ -199,7 +199,7 @@ func (cli *S3) doUploadPart(ctx context.Context, input *s3.UploadPartInput, psk 
 	// Upload part without user-defined PSK
 	out, err = cli.sdkClient.UploadPart(input)
 	if err != nil {
-		log.Event(ctx, "error uploading part", log.Error(err))
+		log.Event(ctx, "error uploading part", log.ERROR, log.Error(err))
 	}
 	return
 }
@@ -214,7 +214,7 @@ func (cli *S3) CheckPartUploaded(ctx context.Context, req *UploadPartRequest) (b
 
 	listMultiOutput, err := cli.sdkClient.ListMultipartUploads(listMultiInput)
 	if err != nil {
-		log.Event(ctx, "error fetching multipart upload list", log.Error(err))
+		log.Event(ctx, "error fetching multipart upload list", log.ERROR, log.Error(err))
 		return false, err
 	}
 
@@ -226,7 +226,7 @@ func (cli *S3) CheckPartUploaded(ctx context.Context, req *UploadPartRequest) (b
 		}
 	}
 	if len(uploadID) == 0 {
-		log.Event(ctx, "chunk number not uploaded", log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
+		log.Event(ctx, "chunk number not uploaded", log.ERROR, log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
 		return false, &ErrNotUploaded{UploadKey: req.UploadKey}
 	}
 
@@ -238,7 +238,7 @@ func (cli *S3) CheckPartUploaded(ctx context.Context, req *UploadPartRequest) (b
 
 	output, err := cli.sdkClient.ListParts(input)
 	if err != nil {
-		log.Event(ctx, "chunk number verification error", log.Error(err), log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
+		log.Event(ctx, "chunk number verification error", log.ERROR, log.Error(err), log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
 		return false, &ErrListParts{err.Error()}
 	}
 
@@ -255,12 +255,12 @@ func (cli *S3) CheckPartUploaded(ctx context.Context, req *UploadPartRequest) (b
 
 	for _, part := range parts {
 		if *part.PartNumber == int64(req.ChunkNumber) {
-			log.Event(ctx, "chunk number already uploaded", log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName, "identifier": req.UploadKey})
+			log.Event(ctx, "chunk number already uploaded", log.INFO, log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName, "identifier": req.UploadKey})
 			return true, nil
 		}
 	}
 
-	log.Event(ctx, "chunk number failed to upload", log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
+	log.Event(ctx, "chunk number failed to upload", log.ERROR, log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
 	return false, &ErrChunkNumberNotFound{req.ChunkNumber}
 }
 
@@ -285,11 +285,11 @@ func (cli *S3) completeUpload(ctx context.Context, uploadID string, req *UploadP
 			Bucket: &cli.bucketName,
 		}
 
-		log.Event(ctx, "going to attempt to complete", log.Data{"complete": completeInput})
+		log.Event(ctx, "going to attempt to complete", log.INFO, log.Data{"complete": completeInput})
 
 		_, err := cli.sdkClient.CompleteMultipartUpload(completeInput)
 		if err != nil {
-			log.Event(ctx, "error completing upload", log.Error(err))
+			log.Event(ctx, "error completing upload", log.ERROR, log.Error(err))
 			return err
 		}
 	}
@@ -375,12 +375,10 @@ func (cli *S3) PutWithPSK(key *string, reader *bytes.Reader, psk []byte) error {
 // ValidateBucket checks that the bucket exists and returns an error if it
 // does not exist or there was some other error trying to get this information.
 func (cli *S3) ValidateBucket() error {
-
-	input := &s3.ListObjectsV2Input{
-		Bucket:  aws.String(cli.bucketName),
-		MaxKeys: aws.Int64(1),
-	}
-
-	_, err := cli.sdkClient.ListObjectsV2(input)
+	_, err := cli.sdkClient.HeadBucket(
+		&s3.HeadBucketInput{
+			Bucket: aws.String(cli.bucketName),
+		},
+	)
 	return err
 }

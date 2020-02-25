@@ -5,11 +5,12 @@ import (
 
 	health "github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 // ServiceName S3
 const ServiceName = "S3"
+
+const codeNotFound = "NotFound"
 
 // MsgHealthy is the message in the Check structure when S3 is healthy
 const MsgHealthy = "S3 is healthy"
@@ -35,10 +36,11 @@ func (cli *S3) Checker(ctx context.Context, state *health.CheckState) error {
 // handleAWSErr updates the provided CheckState with a Critical state and a message according to the provided AWS error.
 // For inexistent buckets, a relevant error message will be generated, for any other error we use the AWS Code (consice string).
 func (cli *S3) handleAWSErr(err awserr.Error, state *health.CheckState) {
-	switch err.Code() {
-	case s3.ErrCodeNoSuchBucket:
-		// Bucket does not exist
-		errBucket := ErrBucketDoesNotExist{BucketName: cli.bucketName}
+	code := err.Code()
+	switch code {
+	case codeNotFound:
+		// Bucket not found
+		errBucket := ErrBucketNotFound{BucketName: cli.bucketName}
 		state.Update(health.StatusCritical, errBucket.Error(), 0)
 	default:
 		// Other AWS error

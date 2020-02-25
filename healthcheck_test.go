@@ -27,24 +27,24 @@ var msgWrongRegion = "BucketRegionError"
 var msgInexistentRegion = "RequestError"
 
 // bucketExists is the mock function for requests for existing buckets
-func bucketExists(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
-	return &s3.ListObjectsV2Output{}, nil
+func bucketExists(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
+	return &s3.HeadBucketOutput{}, nil
 }
 
 // bucketDoesNotExist is the mock function for requests with inexistent regions
-func bucketDoesNotExist(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
-	errBucket := s3client.ErrBucketDoesNotExist{BucketName: InexistentBucket}
-	return nil, &errBucket
+func bucketDoesNotExist(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
+	errBucket := s3client.ErrBucketNotFound{BucketName: InexistentBucket}
+	return &s3.HeadBucketOutput{}, &errBucket
 }
 
 // bucketWrongRegion is the mock function for requests with wrong region for bucket
-func bucketWrongRegion(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
-	return nil, errors.New(msgWrongRegion)
+func bucketWrongRegion(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
+	return &s3.HeadBucketOutput{}, errors.New(msgWrongRegion)
 }
 
 // bucketInexistentRegion is the mock function for requests with inexistent region
-func bucketInexistentRegion(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
-	return nil, errors.New(msgInexistentRegion)
+func bucketInexistentRegion(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
+	return &s3.HeadBucketOutput{}, errors.New(msgInexistentRegion)
 }
 
 func TestBucketOk(t *testing.T) {
@@ -52,7 +52,7 @@ func TestBucketOk(t *testing.T) {
 
 		// Create S3Client with SDK Mock for existing bucket
 		sdkMock := &mock.S3SDKClientMock{
-			ListObjectsV2Func: bucketExists,
+			HeadBucketFunc: bucketExists,
 		}
 		s3Cli := s3client.InstantiateClient(sdkMock, nil, ExistingBucket, ExpectedRegion, nil)
 
@@ -61,7 +61,7 @@ func TestBucketOk(t *testing.T) {
 
 		Convey("Checker updates the CheckState to a successful state", func() {
 			s3Cli.Checker(context.Background(), checkState)
-			So(len(sdkMock.ListObjectsV2Calls()), ShouldEqual, 1)
+			So(len(sdkMock.HeadBucketCalls()), ShouldEqual, 1)
 			So(checkState.Status(), ShouldEqual, health.StatusOK)
 			So(checkState.Message(), ShouldEqual, s3client.MsgHealthy)
 			So(checkState.StatusCode(), ShouldEqual, 0)
@@ -74,7 +74,7 @@ func TestBucketDoesNotExist(t *testing.T) {
 
 		// Create S3Client with SDK Mock for inexistent bucket
 		sdkMock := &mock.S3SDKClientMock{
-			ListObjectsV2Func: bucketDoesNotExist,
+			HeadBucketFunc: bucketDoesNotExist,
 		}
 		s3Cli := s3client.InstantiateClient(sdkMock, nil, InexistentBucket, ExpectedRegion, nil)
 
@@ -83,8 +83,8 @@ func TestBucketDoesNotExist(t *testing.T) {
 
 		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
 			s3Cli.Checker(context.Background(), checkState)
-			So(len(sdkMock.ListObjectsV2Calls()), ShouldEqual, 1)
-			expectedErr := s3client.ErrBucketDoesNotExist{BucketName: InexistentBucket}
+			So(len(sdkMock.HeadBucketCalls()), ShouldEqual, 1)
+			expectedErr := s3client.ErrBucketNotFound{BucketName: InexistentBucket}
 			So(checkState.Status(), ShouldEqual, health.StatusCritical)
 			So(checkState.Message(), ShouldEqual, expectedErr.Error())
 			So(checkState.StatusCode(), ShouldEqual, 0)
@@ -97,7 +97,7 @@ func TestBucketUnexpectedRegion(t *testing.T) {
 
 		// Create S3Client with SDK Mock for unexpected region for bucket
 		sdkMock := &mock.S3SDKClientMock{
-			ListObjectsV2Func: bucketWrongRegion,
+			HeadBucketFunc: bucketWrongRegion,
 		}
 		s3Cli := s3client.InstantiateClient(sdkMock, nil, ExistingBucket, UnexpectedRegion, nil)
 
@@ -106,7 +106,7 @@ func TestBucketUnexpectedRegion(t *testing.T) {
 
 		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
 			s3Cli.Checker(context.Background(), checkState)
-			So(len(sdkMock.ListObjectsV2Calls()), ShouldEqual, 1)
+			So(len(sdkMock.HeadBucketCalls()), ShouldEqual, 1)
 			expectedErr := errors.New(msgWrongRegion)
 			So(checkState.Status(), ShouldEqual, health.StatusCritical)
 			So(checkState.Message(), ShouldEqual, expectedErr.Error())
@@ -120,7 +120,7 @@ func TestBucketInexistentRegion(t *testing.T) {
 
 		// Create S3Client with SDK Mock for inexistent region
 		sdkMock := &mock.S3SDKClientMock{
-			ListObjectsV2Func: bucketInexistentRegion,
+			HeadBucketFunc: bucketInexistentRegion,
 		}
 		s3Cli := s3client.InstantiateClient(sdkMock, nil, ExistingBucket, InexistentRegion, nil)
 
@@ -129,7 +129,7 @@ func TestBucketInexistentRegion(t *testing.T) {
 
 		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
 			s3Cli.Checker(context.Background(), checkState)
-			So(len(sdkMock.ListObjectsV2Calls()), ShouldEqual, 1)
+			So(len(sdkMock.HeadBucketCalls()), ShouldEqual, 1)
 			expectedErr := errors.New(msgInexistentRegion)
 			So(checkState.Status(), ShouldEqual, health.StatusCritical)
 			So(checkState.Message(), ShouldEqual, expectedErr.Error())

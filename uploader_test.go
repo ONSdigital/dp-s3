@@ -20,9 +20,7 @@ func uploadWithPskOk(in1 *s3manager.UploadInput, in2 []byte) (*s3manager.UploadO
 func TestUpload(t *testing.T) {
 
 	Convey("Given an Uploader configured without user-defined psk", t, func() {
-		sdkMock := &mock.S3SDKClientMock{
-			ListObjectsV2Func: bucketExists,
-		}
+		sdkMock := &mock.S3SDKClientMock{}
 		s3Cli := s3client.InstantiateClient(sdkMock, nil, ExistingBucket, ExpectedRegion, nil)
 		sdkUploaderMock := &mock.S3SDKUploaderMock{
 			UploadFunc: uploadOK,
@@ -72,9 +70,7 @@ func TestUploadWithPSK(t *testing.T) {
 
 	Convey("Given an Uploader configured with user-defined psk", t, func() {
 		psk := []byte("test psk")
-		sdkMock := &mock.S3SDKClientMock{
-			ListObjectsV2Func: bucketExists,
-		}
+		sdkMock := &mock.S3SDKClientMock{}
 		s3Cli := s3client.InstantiateClient(sdkMock, nil, ExistingBucket, ExpectedRegion, nil)
 		cryptoUploaderMock := &mock.S3CryptoUploaderMock{
 			UploadWithPSKFunc: uploadWithPskOk,

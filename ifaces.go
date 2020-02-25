@@ -17,7 +17,7 @@ type S3SDKClient interface {
 	CompleteMultipartUpload(*s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error)
 	CreateMultipartUpload(*s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error)
 	UploadPart(*s3.UploadPartInput) (*s3.UploadPartOutput, error)
-	ListObjectsV2(*s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error)
+	HeadBucket(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error)
 	GetObject(*s3.GetObjectInput) (*s3.GetObjectOutput, error)
 }
 
