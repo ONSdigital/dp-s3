@@ -3,7 +3,6 @@ package s3client
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"sync"
 
@@ -296,32 +295,45 @@ func (cli *S3) completeUpload(ctx context.Context, uploadID string, req *UploadP
 	return nil
 }
 
-// GetPathStyleURL returns an https S3 URL from the provided path and the bucket and region
-// configured for the client in path-style. Note: this format is deprecated by Amazon
-// https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
-func (cli *S3) GetPathStyleURL(path string) string {
-	url := "https://s3-%s.amazonaws.com/%s/%s"
-	return fmt.Sprintf(url, cli.region, cli.bucketName, path)
+// GetFromS3URL returns an io.ReadCloser instance for the given S3 URL, in the format specified by URLStyle
+// Mor information in s3 URL styles: https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
+// If the URL defines a region (if provided) or bucket different from the one configured in this client, an error will be returned.
+func (cli *S3) GetFromS3URL(rawURL string, style URLStyle) (io.ReadCloser, error) {
+	return cli.doGetFromS3URL(rawURL, style, nil)
+
 }
 
-// GetFromS3URL returns an io.ReadCloser instance for the given S3 virtual-hosted-style URL (s3://bucketName/objectKey)
-// If the URL defines a bucket different from the one configured in this client, an error will be returned.
-func (cli *S3) GetFromS3URL(rawURL string) (io.ReadCloser, error) {
+// GetFromS3URLWithPSK returns an io.ReadCloser instance for the given S3 URL, in the format specified by URLStyle
+// Mor information in s3 URL styles: https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
+// using the provided psk for encryption.
+// If the URL defines a region (if provided) or bucket different from the one configured in this client, an error will be returned.
+func (cli *S3) GetFromS3URLWithPSK(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, error) {
+	return cli.doGetFromS3URL(rawURL, style, psk)
+}
 
-	// Use the S3 URL implementation as the S3 drivers don't seem to handle fully qualified URLs that include the
-	// bucket name.
-	url, err := NewURL(rawURL)
+func (cli *S3) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, error) {
+
+	// Parse URL with the provided format style
+	s3Url, err := ParseURL(rawURL, style)
 	if err != nil {
 		return nil, err
 	}
 
-	// Validate that bucket defined by URL matches the bucket of this client
-	if url.BucketName() != cli.bucketName {
+	// Validate that URL and client bucket names match
+	if s3Url.BucketName() != cli.bucketName {
 		return nil, &ErrUnexpectedBucket{
-			ExpectedBucketName: cli.bucketName, BucketName: url.BucketName()}
+			ExpectedBucketName: cli.bucketName, BucketName: s3Url.BucketName()}
 	}
 
-	return cli.Get(url.Path())
+	// Validate that URL and client regions match, if URL provides one
+	if len(s3Url.Region()) > 0 && s3Url.Region() != cli.region {
+		return nil, &ErrUnexpectedRegion{ExpectedRegion: cli.region, Region: s3Url.Region()}
+	}
+
+	if psk == nil {
+		return cli.Get(s3Url.Key())
+	}
+	return cli.GetWithPSK(s3Url.Key(), psk)
 }
 
 // Get returns an io.ReadCloser instance for the given path (inside the bucket configured for this client).

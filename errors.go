@@ -4,6 +4,18 @@ import (
 	"fmt"
 )
 
+// ErrUnexpectedRegion if a request tried to access an unexpected region
+type ErrUnexpectedRegion struct {
+	Region         string
+	ExpectedRegion string
+}
+
+// Error returns the error message with the requested and expected regions
+func (e *ErrUnexpectedRegion) Error() string {
+	return fmt.Sprintf("Unexpected region: %s. This S3 client is configured with region %s",
+		e.Region, e.ExpectedRegion)
+}
+
 // ErrUnexpectedBucket if a request tried to access an unexpected bucket
 type ErrUnexpectedBucket struct {
 	BucketName         string
