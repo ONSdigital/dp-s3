@@ -19,9 +19,9 @@ func TestFullyDefinedUrl(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("Getters return the expected values", func() {
-			So(s3Url.Region(), ShouldEqual, expectedRegion)
-			So(s3Url.BucketName(), ShouldEqual, expectedBucketName)
-			So(s3Url.Key(), ShouldEqual, expectedKey)
+			So(s3Url.Region, ShouldEqual, expectedRegion)
+			So(s3Url.BucketName, ShouldEqual, expectedBucketName)
+			So(s3Url.Key, ShouldEqual, expectedKey)
 		})
 
 		Convey("Path style URL string is formatted as expected", func() {
@@ -71,9 +71,9 @@ func TestNoRegionUrl(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		Convey("Getters return the expected values", func() {
-			So(s3Url.Region(), ShouldEqual, "")
-			So(s3Url.BucketName(), ShouldEqual, expectedBucketName)
-			So(s3Url.Key(), ShouldEqual, expectedKey)
+			So(s3Url.Region, ShouldEqual, "")
+			So(s3Url.BucketName, ShouldEqual, expectedBucketName)
+			So(s3Url.Key, ShouldEqual, expectedKey)
 		})
 
 		Convey("Path style URL string is formatted as expected", func() {
@@ -115,116 +115,103 @@ func TestParsing(t *testing.T) {
 	const expectedKey = "dir1/test-file.csv"
 	const expectedRegion = "eu-west-1"
 
-	styles := []s3client.URLStyle{
-		s3client.StylePath,
-		s3client.StyleGlobalPath,
-		s3client.StyleVirtualHosted,
-		s3client.StyleGlobalVirtualHosted,
-		s3client.StyleAliasVirtualHosted,
-	}
-
 	Convey("Given S3 raw url strings in different acceptable formats", t, func() {
-		// urls that define region
-		regionalUrls := map[s3client.URLStyle][]string{
-			s3client.StylePath: []string{
-				"https://s3-eu-west-1.amazonaws.com/csv-bucket/dir1/test-file.csv",
-				"s3://s3-eu-west-1.amazonaws.com/csv-bucket/dir1/test-file.csv"},
-			s3client.StyleVirtualHosted: []string{
-				"https://csv-bucket.s3-eu-west-1.amazonaws.com/dir1/test-file.csv",
-				"s3://csv-bucket.s3-eu-west-1.amazonaws.com/dir1/test-file.csv"},
-		}
-		expectedRegionalS3Url, err := s3client.NewURL(expectedRegion, expectedBucketName, expectedKey)
+
+		expectedRegionalHttpsUrl, err := s3client.NewURL(expectedRegion, expectedBucketName, expectedKey)
+		So(err, ShouldBeNil)
+		expectedRegionalS3Url, err := s3client.NewURLWithScheme("s3", expectedRegion, expectedBucketName, expectedKey)
+		So(err, ShouldBeNil)
+		expectedGlobalHttpsUrl, err := s3client.NewURL("", expectedBucketName, expectedKey)
+		So(err, ShouldBeNil)
+		expectedGlobalS3Url, err := s3client.NewURLWithScheme("s3", "", expectedBucketName, expectedKey)
 		So(err, ShouldBeNil)
 
-		// urls that don't define region
-		globalUrls := map[s3client.URLStyle][]string{
-			s3client.StyleGlobalPath: []string{
-				"https://s3.amazonaws.com/csv-bucket/dir1/test-file.csv",
-				"s3://s3.amazonaws.com/csv-bucket/dir1/test-file.csv"},
-			s3client.StyleGlobalVirtualHosted: []string{
-				"https://csv-bucket.s3.amazonaws.com/dir1/test-file.csv",
-				"s3://csv-bucket.s3.amazonaws.com/dir1/test-file.csv"},
-			s3client.StyleAliasVirtualHosted: []string{
-				"https://csv-bucket/dir1/test-file.csv",
-				"s3://csv-bucket/dir1/test-file.csv"},
+		// URLs by style and expected generated s3Url objects
+		urls := map[s3client.URLStyle]map[string]*s3client.S3Url{
+			s3client.StylePath: map[string]*s3client.S3Url{
+				"https://s3-eu-west-1.amazonaws.com/csv-bucket/dir1/test-file.csv": expectedRegionalHttpsUrl,
+				"s3://s3-eu-west-1.amazonaws.com/csv-bucket/dir1/test-file.csv":    expectedRegionalS3Url,
+			},
+			s3client.StyleVirtualHosted: map[string]*s3client.S3Url{
+				"https://csv-bucket.s3-eu-west-1.amazonaws.com/dir1/test-file.csv": expectedRegionalHttpsUrl,
+				"s3://csv-bucket.s3-eu-west-1.amazonaws.com/dir1/test-file.csv":    expectedRegionalS3Url,
+			},
+			s3client.StyleGlobalPath: map[string]*s3client.S3Url{
+				"https://s3.amazonaws.com/csv-bucket/dir1/test-file.csv": expectedGlobalHttpsUrl,
+				"s3://s3.amazonaws.com/csv-bucket/dir1/test-file.csv":    expectedGlobalS3Url,
+			},
+			s3client.StyleGlobalVirtualHosted: map[string]*s3client.S3Url{
+				"https://csv-bucket.s3.amazonaws.com/dir1/test-file.csv": expectedGlobalHttpsUrl,
+				"s3://csv-bucket.s3.amazonaws.com/dir1/test-file.csv":    expectedGlobalS3Url,
+			},
+			s3client.StyleAliasVirtualHosted: map[string]*s3client.S3Url{
+				"https://csv-bucket/dir1/test-file.csv": expectedGlobalHttpsUrl,
+				"s3://csv-bucket/dir1/test-file.csv":    expectedGlobalS3Url,
+			},
 		}
-		expectedGlobalS3Url, err := s3client.NewURL("", expectedBucketName, expectedKey)
-		So(err, ShouldBeNil)
 
 		Convey("Each format is correctly parsed, successfully retreiving bucket, key and region (if available)", func() {
-			for style, urls := range regionalUrls {
-				for _, url := range urls {
+			for style, urlMap := range urls {
+				for url, expectedObject := range urlMap {
 					s3Url, err := s3client.ParseURL(url, style)
 					So(err, ShouldBeNil)
-					So(s3Url, ShouldResemble, expectedRegionalS3Url)
-				}
-			}
-			for style, urls := range globalUrls {
-				for _, url := range urls {
-					s3Url, err := s3client.ParseURL(url, style)
-					So(err, ShouldBeNil)
-					So(s3Url, ShouldResemble, expectedGlobalS3Url)
+					So(s3Url, ShouldResemble, expectedObject)
 				}
 			}
 		})
 
 		Convey("A path-style url can be parsed as a global-path-style with empty region", func() {
-			for _, url := range regionalUrls[s3client.StylePath] {
-				s3Url, err := s3client.ParseURL(url, s3client.StyleGlobalPath)
-				So(err, ShouldBeNil)
-				So(s3Url, ShouldResemble, expectedGlobalS3Url)
+			s3Url, err := s3client.ParseURL(
+				"https://s3-eu-west-1.amazonaws.com/csv-bucket/dir1/test-file.csv", s3client.StyleGlobalPath)
+			So(err, ShouldBeNil)
+			So(s3Url, ShouldResemble, expectedGlobalHttpsUrl)
+			s3Url, err = s3client.ParseURL(
+				"s3://s3-eu-west-1.amazonaws.com/csv-bucket/dir1/test-file.csv", s3client.StyleGlobalPath)
+			So(err, ShouldBeNil)
+			So(s3Url, ShouldResemble, expectedGlobalS3Url)
+		})
+
+		Convey("Trying to parse an empty S3 raw url results in error ", func() {
+			for style, _ := range urls {
+				_, err := s3client.ParseURL("", style)
+				So(err, ShouldNotBeNil)
 			}
 		})
 
-		Convey("A global-path-style url can be parsed as a path-style with empty region", func() {
-			for _, url := range regionalUrls[s3client.StyleGlobalPath] {
-				s3Url, err := s3client.ParseURL(url, s3client.StylePath)
-				So(err, ShouldBeNil)
-				So(s3Url, ShouldResemble, expectedGlobalS3Url)
+		Convey("Tying to parse an s3 url that is missing the object key, results in error", func() {
+			missingBucketUrl := "s3://some-file"
+			for style, _ := range urls {
+				_, err := s3client.ParseURL(missingBucketUrl, style)
+				So(err, ShouldNotBeNil)
 			}
 		})
-	})
 
-	Convey("Trying to parse an empty S3 raw url results in error ", t, func() {
-		for _, style := range styles {
-			_, err := s3client.ParseURL("", style)
-			So(err, ShouldNotBeNil)
-		}
-	})
+		Convey("Trying to parse an s3 url with empty bucket or key results in error", func() {
+			emptyValuesUrl1 := "s3://///////"
+			emptyValuesUrl2 := fmt.Sprintf("s3:/%s/", expectedBucketName)
+			for style, _ := range urls {
+				_, err := s3client.ParseURL(emptyValuesUrl1, style)
+				So(err, ShouldNotBeNil)
+				_, err = s3client.ParseURL(emptyValuesUrl2, style)
+				So(err, ShouldNotBeNil)
+			}
+		})
 
-	Convey("Tying to parse an s3 url that is missing the object key, results in error", t, func() {
-		missingBucketUrl := "s3://some-file"
-		for _, style := range styles {
-			_, err := s3client.ParseURL(missingBucketUrl, style)
-			So(err, ShouldNotBeNil)
-		}
-	})
+		Convey("Tying to parse an s3 url that is missing the bucket name and object key results in error", func() {
+			missingBucketUrl := "s3://"
+			for style, _ := range urls {
+				_, err := s3client.ParseURL(missingBucketUrl, style)
+				So(err, ShouldNotBeNil)
+			}
+		})
 
-	Convey("Trying to parse an s3 url with empty bucket or key results in error", t, func() {
-		emptyValuesUrl1 := "s3://///////"
-		emptyValuesUrl2 := fmt.Sprintf("s3:/%s/", expectedBucketName)
-		for _, style := range styles {
-			_, err := s3client.ParseURL(emptyValuesUrl1, style)
-			So(err, ShouldNotBeNil)
-			_, err = s3client.ParseURL(emptyValuesUrl2, style)
-			So(err, ShouldNotBeNil)
-		}
-	})
-
-	Convey("Tying to parse an s3 url that is missing the bucket name and object key results in error", t, func() {
-		missingBucketUrl := "s3://"
-		for _, style := range styles {
-			_, err := s3client.ParseURL(missingBucketUrl, style)
-			So(err, ShouldNotBeNil)
-		}
-	})
-
-	Convey("Trying to parse a malformed s3 url results in error", t, func() {
-		malformedURL := "This%Url%Is%Malformed"
-		for _, style := range styles {
-			_, err := s3client.ParseURL(malformedURL, style)
-			So(err, ShouldNotBeNil)
-		}
+		Convey("Trying to parse a malformed s3 url results in error", func() {
+			malformedURL := "This%Url%Is%Malformed"
+			for style, _ := range urls {
+				_, err := s3client.ParseURL(malformedURL, style)
+				So(err, ShouldNotBeNil)
+			}
+		})
 	})
 }
 
@@ -237,17 +224,19 @@ func TestNewURL(t *testing.T) {
 	Convey("Given valid region, bucket name and key results in New creating the expected S3Url struct", t, func() {
 		s3Url, err := s3client.NewURL(expectedRegion, expectedBucketName, expectedKey)
 		So(err, ShouldBeNil)
-		So(s3Url.Region(), ShouldEqual, expectedRegion)
-		So(s3Url.BucketName(), ShouldEqual, expectedBucketName)
-		So(s3Url.Key(), ShouldEqual, expectedKey)
+		So(s3Url.Scheme, ShouldEqual, "https")
+		So(s3Url.Region, ShouldEqual, expectedRegion)
+		So(s3Url.BucketName, ShouldEqual, expectedBucketName)
+		So(s3Url.Key, ShouldEqual, expectedKey)
 	})
 
 	Convey("Given an empty region, valid bucket name and key results in New creating the expected S3Url struct", t, func() {
 		s3Url, err := s3client.NewURL("", expectedBucketName, expectedKey)
 		So(err, ShouldBeNil)
-		So(s3Url.Region(), ShouldEqual, "")
-		So(s3Url.BucketName(), ShouldEqual, expectedBucketName)
-		So(s3Url.Key(), ShouldEqual, expectedKey)
+		So(s3Url.Scheme, ShouldEqual, "https")
+		So(s3Url.Region, ShouldEqual, "")
+		So(s3Url.BucketName, ShouldEqual, expectedBucketName)
+		So(s3Url.Key, ShouldEqual, expectedKey)
 	})
 
 	Convey("Given an empty bucket results in error trying to create a new S3Url", t, func() {
@@ -258,5 +247,14 @@ func TestNewURL(t *testing.T) {
 	Convey("Given an empty key results in error trying to create a new S3Url", t, func() {
 		_, err := s3client.NewURL(expectedRegion, expectedBucketName, "")
 		So(err, ShouldNotBeNil)
+	})
+
+	Convey("Given a non-defult scheme, valid region, bucket name and key results in NewURLWithScheme creating the expected S3Url struct", t, func() {
+		s3Url, err := s3client.NewURLWithScheme("s3", expectedRegion, expectedBucketName, expectedKey)
+		So(err, ShouldBeNil)
+		So(s3Url.Scheme, ShouldEqual, "s3")
+		So(s3Url.Region, ShouldEqual, expectedRegion)
+		So(s3Url.BucketName, ShouldEqual, expectedBucketName)
+		So(s3Url.Key, ShouldEqual, expectedKey)
 	})
 }

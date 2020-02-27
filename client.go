@@ -320,20 +320,20 @@ func (cli *S3) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io.Rea
 	}
 
 	// Validate that URL and client bucket names match
-	if s3Url.BucketName() != cli.bucketName {
+	if s3Url.BucketName != cli.bucketName {
 		return nil, &ErrUnexpectedBucket{
-			ExpectedBucketName: cli.bucketName, BucketName: s3Url.BucketName()}
+			ExpectedBucketName: cli.bucketName, BucketName: s3Url.BucketName}
 	}
 
 	// Validate that URL and client regions match, if URL provides one
-	if len(s3Url.Region()) > 0 && s3Url.Region() != cli.region {
-		return nil, &ErrUnexpectedRegion{ExpectedRegion: cli.region, Region: s3Url.Region()}
+	if len(s3Url.Region) > 0 && s3Url.Region != cli.region {
+		return nil, &ErrUnexpectedRegion{ExpectedRegion: cli.region, Region: s3Url.Region}
 	}
 
 	if psk == nil {
-		return cli.Get(s3Url.Key())
+		return cli.Get(s3Url.Key)
 	}
-	return cli.GetWithPSK(s3Url.Key(), psk)
+	return cli.GetWithPSK(s3Url.Key, psk)
 }
 
 // Get returns an io.ReadCloser instance for the given path (inside the bucket configured for this client).

@@ -29,24 +29,10 @@ func (style URLStyle) String() string {
 // S3Url represents an S3 URL with bucketName, key and region (optional). This struct is
 // intended to be used for S3 URL string manipulation/translation in its possible format styles.
 type S3Url struct {
-	region     string
-	bucketName string
-	key        string
-}
-
-// Region returns the region defined by the url
-func (s3Url *S3Url) Region() string {
-	return s3Url.region
-}
-
-// BucketName returns the bucket name defined by the url
-func (s3Url *S3Url) BucketName() string {
-	return s3Url.bucketName
-}
-
-// Key returns the object key defined by the url
-func (s3Url *S3Url) Key() string {
-	return s3Url.key
+	Scheme     string
+	Region     string
+	BucketName string
+	Key        string
 }
 
 // String returns the S3 URL string in the requested format style.
@@ -59,26 +45,26 @@ func (s3Url *S3Url) Key() string {
 func (s3Url *S3Url) String(style URLStyle) (string, error) {
 	switch style {
 	case StylePath:
-		if len(s3Url.region) == 0 {
+		if len(s3Url.Region) == 0 {
 			return "", errors.New("Path style format requires a region")
 		}
-		url := "https://s3-%s.amazonaws.com/%s/%s"
-		return fmt.Sprintf(url, s3Url.region, s3Url.bucketName, s3Url.key), nil
+		url := "%s://s3-%s.amazonaws.com/%s/%s"
+		return fmt.Sprintf(url, s3Url.Scheme, s3Url.Region, s3Url.BucketName, s3Url.Key), nil
 	case StyleGlobalPath:
-		url := "https://s3.amazonaws.com/%s/%s"
-		return fmt.Sprintf(url, s3Url.bucketName, s3Url.key), nil
+		url := "%s://s3.amazonaws.com/%s/%s"
+		return fmt.Sprintf(url, s3Url.Scheme, s3Url.BucketName, s3Url.Key), nil
 	case StyleVirtualHosted:
-		if len(s3Url.region) == 0 {
+		if len(s3Url.Region) == 0 {
 			return "", errors.New("Virtual-hosted style format requires a region")
 		}
-		url := "https://%s.s3-%s.amazonaws.com/%s"
-		return fmt.Sprintf(url, s3Url.bucketName, s3Url.region, s3Url.key), nil
+		url := "%s://%s.s3-%s.amazonaws.com/%s"
+		return fmt.Sprintf(url, s3Url.Scheme, s3Url.BucketName, s3Url.Region, s3Url.Key), nil
 	case StyleGlobalVirtualHosted:
-		url := "https://%s.s3.amazonaws.com/%s"
-		return fmt.Sprintf(url, s3Url.bucketName, s3Url.key), nil
+		url := "%s://%s.s3.amazonaws.com/%s"
+		return fmt.Sprintf(url, s3Url.Scheme, s3Url.BucketName, s3Url.Key), nil
 	case StyleAliasVirtualHosted:
-		url := "https://%s/%s"
-		return fmt.Sprintf(url, s3Url.bucketName, s3Url.key), nil
+		url := "%s://%s/%s"
+		return fmt.Sprintf(url, s3Url.Scheme, s3Url.BucketName, s3Url.Key), nil
 	}
 	return "", errors.New("Undefined style")
 }
@@ -101,7 +87,7 @@ func ParseURL(rawURL string, style URLStyle) (*S3Url, error) {
 }
 
 // ParsePathStyleURL creates an S3Url struct from the provided path-style url string
-// Example: 'https://s3-eu-west-1.amazonaws.com/myBucket/my/s3/object/key'
+// Example: 'https://s3-eu-west-1.amazonaws.com/myBucket/my/s3/object/key'.
 func ParsePathStyleURL(pathStyleURL string) (*S3Url, error) {
 
 	url, err := url.Parse(pathStyleURL)
@@ -119,11 +105,12 @@ func ParsePathStyleURL(pathStyleURL string) (*S3Url, error) {
 		return nil, err
 	}
 
-	return NewURL(region, bucketName, key)
+	return NewURLWithScheme(url.Scheme, region, bucketName, key)
 }
 
 // ParseGlobalPathStyleURL creates an S3Url struct from the provided global-path-style url string
 // Example: 'https://s3.amazonaws.com/myBucket/my/s3/object/key'
+// This method is compatible with PathStyle format (if region is present in the URL, it will be ignored)
 func ParseGlobalPathStyleURL(gpURL string) (*S3Url, error) {
 	url, err := url.Parse(gpURL)
 	if err != nil {
@@ -135,7 +122,7 @@ func ParseGlobalPathStyleURL(gpURL string) (*S3Url, error) {
 		return nil, err
 	}
 
-	return NewURL("", bucketName, key)
+	return NewURLWithScheme(url.Scheme, "", bucketName, key)
 }
 
 func parsePath(url *url.URL) (bucketName string, key string, err error) {
@@ -184,7 +171,7 @@ func ParseVirtualHostedURL(vhURL string) (*S3Url, error) {
 		return nil, fmt.Errorf("wrong key in virtual-hosted-style url: %s", vhURL)
 	}
 
-	return NewURL(region, bucketName, key)
+	return NewURLWithScheme(url.Scheme, region, bucketName, key)
 }
 
 // ParseGlobalVirtualHostedURL creates an S3Url struct from the provided global-virtual-hosted-style url string
@@ -204,8 +191,7 @@ func ParseGlobalVirtualHostedURL(gvhURL string) (*S3Url, error) {
 	if len(key) == 0 {
 		return nil, fmt.Errorf("wrong key in global virtual hosted style url: %s", gvhURL)
 	}
-
-	return NewURL("", bucketName, key)
+	return NewURLWithScheme(url.Scheme, "", bucketName, key)
 }
 
 // ParseAliasVirtualHostedURL creates an S3Url struct from the provided dns-alias-virtual-hosted-style url string
@@ -226,20 +212,29 @@ func ParseAliasVirtualHostedURL(avhURL string) (*S3Url, error) {
 		return nil, fmt.Errorf("wrong key in global virtual hosted style url: %s", avhURL)
 	}
 
-	return NewURL("", bucketName, key)
+	return NewURLWithScheme(url.Scheme, "", bucketName, key)
 }
 
 // NewURL instantiates a new S3Url struct with the provided region, bucket name and object key
 func NewURL(region, bucketName, key string) (*S3Url, error) {
+	return NewURLWithScheme("https", region, bucketName, key)
+}
+
+// NewURLWithScheme instantiates a new S3Url struct with the provided scheme, region, bucket and object key
+func NewURLWithScheme(scheme, region, bucketName, key string) (*S3Url, error) {
 	if len(bucketName) == 0 {
 		return nil, errors.New("bucketName required")
 	}
 	if len(key) == 0 {
 		return nil, errors.New("key required")
 	}
+	if len(scheme) == 0 {
+		scheme = "https"
+	}
 	return &S3Url{
-		region:     region,
-		bucketName: bucketName,
-		key:        key,
+		Scheme:     scheme,
+		Region:     region,
+		BucketName: bucketName,
+		Key:        key,
 	}, nil
 }
