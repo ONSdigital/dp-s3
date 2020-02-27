@@ -27,24 +27,85 @@ More information in [Amazon documentation](https://docs.aws.amazon.com/cli/lates
 
 The functionality implemented by this library requires that the user has some permissions defined by an IAM policy.
 
-- Health-check functionality performs a HEAD bucket operation, requiring allowed `s3:HeadBucket` for all resources.
+- Health-check functionality performs a HEAD bucket operation, requiring allowed `s3:ListBucket` for all resources.
 
 - Get functionality requires allowed `s3:GetObject` for the objects under the hierarchy you want to allow (e.g. `my-bucket/prefix/*`).
 
 - Upload (PUT) functionality requires allowed `s3:PutObject` for the objects under the hierarchy you want to allow (e.g. `my-bucket/prefix/*`).
 
-- Multipart upload functionality requires allowed `s3:PutObject`, `s3:GetObject`, `s3:AbortMultipartUpload`, `s3:ListMultipartUploadParts` for objects under the hierarcy you want to allow (e.g. `my-bucket/prefix/*`); and `s3:ListBucketMultipartUploads` for the bucket (e.g. `my-bucket`).
+- Multipart upload functionality requires allowed `s3:PutObject`, `s3:GetObject`, `s3:AbortMultipartUpload`, `s3:ListMultipartUploadParts` for objects under the hierarchy you want to allow (e.g. `my-bucket/prefix/*`); and `s3:ListBucketMultipartUploads` for the bucket (e.g. `my-bucket`).
 
 Please, see our [terraform repository](https://github.com/ONSdigital/dp-setup/tree/develop/terraform) for more information.
 
-#### Usage
+#### S3 Client Usage
 
-You can access AWS S3 creating a new client using the New() function in client.go providing the right region. Please, note that you will only be able to see S3 buckets created in a particular region using a client accessing that region.
+You can access AWS S3 to get objects and do multipart uploads by creating a new client using the `NewClient()` function in client.go with the right region and bucketName,
+or `NewClientWithSession()` if you already have an established AWS session.
+Please, note that you will only be able to see S3 buckets created in a particular region using a client accessing that region.
 
 ```
-s3cli := s3client.New(<region>)
-s3cli.Get(<url>)
+s3cli := s3client.NewClient(<region>, <bucket>, <hasUserDefinedPSK>)
+s3cli.Get(<S3ObjectKey>)
+...
 ```
+
+```
+s3cli := NewClientWithSession(<bucket>, <hasUserDefinedPSK>, <awsSession>)
+s3cli.Get(<S3ObjectKey>)
+...
+```
+
+#### Uploader Usage
+
+You can access AWS S3 to upload (PUT) objects by creating a new uploader using the `NewUploader()` function in uploader.go with the right region and bucketName,
+or `NewUploaderWithSession()` if you already have an established AWS session.
+Please, note that you will only be able to see S3 buckets created in a particular region using a client accessing that region.
+
+```
+s3Uploader := s3client.NewUploader(<region>, <bucket>, <hasUserDefinedPSK>)
+s3Uploader.Upload(<input>)
+...
+```
+
+```
+s3Uploader := NewUploaderWithSession(<bucket>, <hasUserDefinedPSK>, <awsSession>)
+s3Uploader.Upload(<input>)
+...
+```
+
+#### URL Usage
+
+S3Url is a structure intended to be used for S3 URL string manipulation in its different formats. To create a new structure you need to provide region, bucketName and object key,
+and optionally the scheme:
+
+```
+s3Url, err := func NewURL(<region>, <bucket>, <s3ObjcetKey>)
+s3Url, err := func NewURLWithScheme(<scheme>, <region>, <bucket>, <s3ObjcetKey>)
+```
+
+If you want to parse a URL into an s3Url object, you can use `ParseURL()` method, providing the format style:
+
+```
+s3Url, err := ParseURL(<rawURL>, <URLStyle>)
+```
+
+Once you have a valid s3Url object, you can obtain the URL string representation in the required format style by calling `String()` method:
+
+```
+str, err := s3Url.String(<URLStyle>)
+```
+
+##### Valid URL format Styles
+
+The following URL styles are supported:
+
+- PathStyle: `https://s3-eu-west-1.amazonaws.com/myBucket/my/s3/object/key`
+- GlobalPathStyle: `https://s3.amazonaws.com/myBucket/my/s3/object/key`
+- VirtualHostedStyle: `https://myBucket.s3-eu-west-1.amazonaws.com/my/s3/object/key`
+- GlobalVirtualHostedStyle: `https://myBucket.s3.amazonaws.com/my/s3/object/key`
+- AliasVirtualHostedStyle: '`https://myBucket/my/s3/object/key`
+
+More information in [S3 official documentation](https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html)
 
 ### Health package
 
