@@ -11,16 +11,16 @@ import (
 type URLStyle int
 
 // Possible S3 URL format styles, as defined in https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
-// PathStyle example: 'https://s3-eu-west-1.amazonaws.com/myBucket/my/s3/object/key'
-// GlobalPathStyle example: 'https://s3.amazonaws.com/myBucket/my/s3/object/key'
-// VirtualHostedStyle example: 'https://myBucket.s3-eu-west-1.amazonaws.com/my/s3/object/key'
-// GlobalVirtualHostedStyle example: 'https://myBucket.s3.amazonaws.com/my/s3/object/key'
-// AliasVirtualHostedStyle example: 'https://myBucket/my/s3/object/key'
 const (
+	// PathStyle example: 'https://s3-eu-west-1.amazonaws.com/myBucket/my/s3/object/key'
 	PathStyle = iota
+	// GlobalPathStyle example: 'https://s3.amazonaws.com/myBucket/my/s3/object/key'
 	GlobalPathStyle
+	// VirtualHostedStyle example: 'https://myBucket.s3-eu-west-1.amazonaws.com/my/s3/object/key'
 	VirtualHostedStyle
+	// GlobalVirtualHostedStyle example: 'https://myBucket.s3.amazonaws.com/my/s3/object/key'
 	GlobalVirtualHostedStyle
+	// AliasVirtualHostedStyle example: 'https://myBucket/my/s3/object/key'
 	AliasVirtualHostedStyle
 )
 
