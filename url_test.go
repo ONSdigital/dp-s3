@@ -26,35 +26,35 @@ func TestFullyDefinedUrl(t *testing.T) {
 
 		Convey("Path style URL string is formatted as expected", func() {
 			expectedStr := fmt.Sprintf("https://s3-%s.amazonaws.com/%s/%s", expectedRegion, expectedBucketName, expectedKey)
-			urlStr, err := s3Url.String(s3client.StylePath)
+			urlStr, err := s3Url.String(s3client.PathStyle)
 			So(err, ShouldBeNil)
 			So(urlStr, ShouldEqual, expectedStr)
 		})
 
 		Convey("Global Path style URL string is formatted as expected", func() {
 			expectedStr := fmt.Sprintf("https://s3.amazonaws.com/%s/%s", expectedBucketName, expectedKey)
-			urlStr, err := s3Url.String(s3client.StyleGlobalPath)
+			urlStr, err := s3Url.String(s3client.GlobalPathStyle)
 			So(err, ShouldBeNil)
 			So(urlStr, ShouldEqual, expectedStr)
 		})
 
 		Convey("Virtual hosted style URL string is formatted as expected", func() {
 			expectedStr := fmt.Sprintf("https://%s.s3-%s.amazonaws.com/%s", expectedBucketName, expectedRegion, expectedKey)
-			urlStr, err := s3Url.String(s3client.StyleVirtualHosted)
+			urlStr, err := s3Url.String(s3client.VirtualHostedStyle)
 			So(err, ShouldBeNil)
 			So(urlStr, ShouldEqual, expectedStr)
 		})
 
 		Convey("Global virtual hosted style URL string is formatted as expected", func() {
 			expectedStr := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", expectedBucketName, expectedKey)
-			urlStr, err := s3Url.String(s3client.StyleGlobalVirtualHosted)
+			urlStr, err := s3Url.String(s3client.GlobalVirtualHostedStyle)
 			So(err, ShouldBeNil)
 			So(urlStr, ShouldEqual, expectedStr)
 		})
 
 		Convey("DNS Alias virtual hosted style URL string is formatted as expected", func() {
 			expectedStr := fmt.Sprintf("https://%s/%s", expectedBucketName, expectedKey)
-			urlStr, err := s3Url.String(s3client.StyleAliasVirtualHosted)
+			urlStr, err := s3Url.String(s3client.AliasVirtualHostedStyle)
 			So(err, ShouldBeNil)
 			So(urlStr, ShouldEqual, expectedStr)
 		})
@@ -77,32 +77,32 @@ func TestNoRegionUrl(t *testing.T) {
 		})
 
 		Convey("Path style URL string is formatted as expected", func() {
-			_, err := s3Url.String(s3client.StylePath)
+			_, err := s3Url.String(s3client.PathStyle)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Global Path style URL string is formatted as expected", func() {
 			expectedStr := fmt.Sprintf("https://s3.amazonaws.com/%s/%s", expectedBucketName, expectedKey)
-			urlStr, err := s3Url.String(s3client.StyleGlobalPath)
+			urlStr, err := s3Url.String(s3client.GlobalPathStyle)
 			So(err, ShouldBeNil)
 			So(urlStr, ShouldEqual, expectedStr)
 		})
 
 		Convey("Virtual hosted style URL string is formatted as expected", func() {
-			_, err := s3Url.String(s3client.StyleVirtualHosted)
+			_, err := s3Url.String(s3client.VirtualHostedStyle)
 			So(err, ShouldNotBeNil)
 		})
 
 		Convey("Global virtual hosted style URL string is formatted as expected", func() {
 			expectedStr := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", expectedBucketName, expectedKey)
-			urlStr, err := s3Url.String(s3client.StyleGlobalVirtualHosted)
+			urlStr, err := s3Url.String(s3client.GlobalVirtualHostedStyle)
 			So(err, ShouldBeNil)
 			So(urlStr, ShouldEqual, expectedStr)
 		})
 
 		Convey("DNS Alias virtual hosted style URL string is formatted as expected", func() {
 			expectedStr := fmt.Sprintf("https://%s/%s", expectedBucketName, expectedKey)
-			urlStr, err := s3Url.String(s3client.StyleAliasVirtualHosted)
+			urlStr, err := s3Url.String(s3client.AliasVirtualHostedStyle)
 			So(err, ShouldBeNil)
 			So(urlStr, ShouldEqual, expectedStr)
 		})
@@ -128,23 +128,23 @@ func TestParsing(t *testing.T) {
 
 		// URLs by style and expected generated s3Url objects
 		urls := map[s3client.URLStyle]map[string]*s3client.S3Url{
-			s3client.StylePath: map[string]*s3client.S3Url{
+			s3client.PathStyle: map[string]*s3client.S3Url{
 				"https://s3-eu-west-1.amazonaws.com/csv-bucket/dir1/test-file.csv": expectedRegionalHttpsUrl,
 				"s3://s3-eu-west-1.amazonaws.com/csv-bucket/dir1/test-file.csv":    expectedRegionalS3Url,
 			},
-			s3client.StyleVirtualHosted: map[string]*s3client.S3Url{
+			s3client.VirtualHostedStyle: map[string]*s3client.S3Url{
 				"https://csv-bucket.s3-eu-west-1.amazonaws.com/dir1/test-file.csv": expectedRegionalHttpsUrl,
 				"s3://csv-bucket.s3-eu-west-1.amazonaws.com/dir1/test-file.csv":    expectedRegionalS3Url,
 			},
-			s3client.StyleGlobalPath: map[string]*s3client.S3Url{
+			s3client.GlobalPathStyle: map[string]*s3client.S3Url{
 				"https://s3.amazonaws.com/csv-bucket/dir1/test-file.csv": expectedGlobalHttpsUrl,
 				"s3://s3.amazonaws.com/csv-bucket/dir1/test-file.csv":    expectedGlobalS3Url,
 			},
-			s3client.StyleGlobalVirtualHosted: map[string]*s3client.S3Url{
+			s3client.GlobalVirtualHostedStyle: map[string]*s3client.S3Url{
 				"https://csv-bucket.s3.amazonaws.com/dir1/test-file.csv": expectedGlobalHttpsUrl,
 				"s3://csv-bucket.s3.amazonaws.com/dir1/test-file.csv":    expectedGlobalS3Url,
 			},
-			s3client.StyleAliasVirtualHosted: map[string]*s3client.S3Url{
+			s3client.AliasVirtualHostedStyle: map[string]*s3client.S3Url{
 				"https://csv-bucket/dir1/test-file.csv": expectedGlobalHttpsUrl,
 				"s3://csv-bucket/dir1/test-file.csv":    expectedGlobalS3Url,
 			},
@@ -162,11 +162,11 @@ func TestParsing(t *testing.T) {
 
 		Convey("A path-style url can be parsed as a global-path-style with empty region", func() {
 			s3Url, err := s3client.ParseURL(
-				"https://s3-eu-west-1.amazonaws.com/csv-bucket/dir1/test-file.csv", s3client.StyleGlobalPath)
+				"https://s3-eu-west-1.amazonaws.com/csv-bucket/dir1/test-file.csv", s3client.GlobalPathStyle)
 			So(err, ShouldBeNil)
 			So(s3Url, ShouldResemble, expectedGlobalHttpsUrl)
 			s3Url, err = s3client.ParseURL(
-				"s3://s3-eu-west-1.amazonaws.com/csv-bucket/dir1/test-file.csv", s3client.StyleGlobalPath)
+				"s3://s3-eu-west-1.amazonaws.com/csv-bucket/dir1/test-file.csv", s3client.GlobalPathStyle)
 			So(err, ShouldBeNil)
 			So(s3Url, ShouldResemble, expectedGlobalS3Url)
 		})

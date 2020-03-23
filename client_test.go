@@ -50,7 +50,7 @@ func TestGet(t *testing.T) {
 
 		Convey("GetFromS3URL called with a valid global URL returns an io.Reader with the expected payload", func() {
 			validGlobalURL := fmt.Sprintf("s3://%s/%s", bucket, objKey)
-			ret, err := s3Cli.GetFromS3URL(validGlobalURL, s3client.StyleAliasVirtualHosted)
+			ret, err := s3Cli.GetFromS3URL(validGlobalURL, s3client.AliasVirtualHostedStyle)
 			So(err, ShouldBeNil)
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(ret)
@@ -65,7 +65,7 @@ func TestGet(t *testing.T) {
 
 		Convey("GetFromS3URL called with a valid regional URL returns an io.Reader with the expected payload", func() {
 			validRegionalURL := fmt.Sprintf("https://s3-%s.amazonaws.com/%s/%s", region, bucket, objKey)
-			ret, err := s3Cli.GetFromS3URL(validRegionalURL, s3client.StylePath)
+			ret, err := s3Cli.GetFromS3URL(validRegionalURL, s3client.PathStyle)
 			So(err, ShouldBeNil)
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(ret)
@@ -80,21 +80,21 @@ func TestGet(t *testing.T) {
 
 		Convey("GetFromS3URL called with a valid global URL with the wrong bucket returns ErrUnexpectedBucket", func() {
 			wrongBucketGlobalURL := fmt.Sprintf("s3://%s/%s", "wrongBucket", objKey)
-			_, err := s3Cli.GetFromS3URL(wrongBucketGlobalURL, s3client.StyleAliasVirtualHosted)
+			_, err := s3Cli.GetFromS3URL(wrongBucketGlobalURL, s3client.AliasVirtualHostedStyle)
 			So(err, ShouldResemble, &s3client.ErrUnexpectedBucket{ExpectedBucketName: bucket, BucketName: "wrongBucket"})
 			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 0)
 		})
 
 		Convey("GetFromS3URL called with a valid regional URL with the wrong region returns ErrUnexpectedBucket", func() {
 			wrongRegionRegionalURL := fmt.Sprintf("https://s3-%s.amazonaws.com/%s/%s", "wrongRegion", bucket, objKey)
-			_, err := s3Cli.GetFromS3URL(wrongRegionRegionalURL, s3client.StylePath)
+			_, err := s3Cli.GetFromS3URL(wrongRegionRegionalURL, s3client.PathStyle)
 			So(err, ShouldResemble, &s3client.ErrUnexpectedRegion{ExpectedRegion: region, Region: "wrongRegion"})
 			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 0)
 		})
 
 		Convey("GetFromS3URL called with a malformed URL returns error", func() {
 			malformedURL := "This%Url%Is%Malformed"
-			_, err := s3Cli.GetFromS3URL(malformedURL, s3client.StyleAliasVirtualHosted)
+			_, err := s3Cli.GetFromS3URL(malformedURL, s3client.AliasVirtualHostedStyle)
 			So(err, ShouldResemble, &url.Error{Op: "parse", URL: malformedURL, Err: url.EscapeError("%Ur")})
 			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 0)
 		})
@@ -138,7 +138,7 @@ func TestGetWithPSK(t *testing.T) {
 
 		Convey("GetFromS3URLWithPSK called with a valid global URL returns an io.Reader with the expected payload", func() {
 			validGlobalURL := fmt.Sprintf("s3://%s/%s", bucket, objKey)
-			ret, err := s3Cli.GetFromS3URLWithPSK(validGlobalURL, s3client.StyleAliasVirtualHosted, psk)
+			ret, err := s3Cli.GetFromS3URLWithPSK(validGlobalURL, s3client.AliasVirtualHostedStyle, psk)
 			So(err, ShouldBeNil)
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(ret)
