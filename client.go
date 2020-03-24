@@ -298,7 +298,7 @@ func (cli *S3) completeUpload(ctx context.Context, uploadID string, req *UploadP
 // GetFromS3URL returns an io.ReadCloser instance for the given S3 URL, in the format specified by URLStyle
 // Mor information in s3 URL styles: https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
 // If the URL defines a region (if provided) or bucket different from the one configured in this client, an error will be returned.
-func (cli *S3) GetFromS3URL(rawURL string, style URLStyle) (io.ReadCloser, error) {
+func (cli *S3) GetFromS3URL(rawURL string, style URLStyle) (io.ReadCloser, *int64, error) {
 	return cli.doGetFromS3URL(rawURL, style, nil)
 
 }
@@ -307,27 +307,27 @@ func (cli *S3) GetFromS3URL(rawURL string, style URLStyle) (io.ReadCloser, error
 // Mor information in s3 URL styles: https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
 // using the provided psk for encryption.
 // If the URL defines a region (if provided) or bucket different from the one configured in this client, an error will be returned.
-func (cli *S3) GetFromS3URLWithPSK(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, error) {
+func (cli *S3) GetFromS3URLWithPSK(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, *int64, error) {
 	return cli.doGetFromS3URL(rawURL, style, psk)
 }
 
-func (cli *S3) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, error) {
+func (cli *S3) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, *int64, error) {
 
 	// Parse URL with the provided format style
 	s3Url, err := ParseURL(rawURL, style)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Validate that URL and client bucket names match
 	if s3Url.BucketName != cli.bucketName {
-		return nil, &ErrUnexpectedBucket{
+		return nil, nil, &ErrUnexpectedBucket{
 			ExpectedBucketName: cli.bucketName, BucketName: s3Url.BucketName}
 	}
 
 	// Validate that URL and client regions match, if URL provides one
 	if len(s3Url.Region) > 0 && s3Url.Region != cli.region {
-		return nil, &ErrUnexpectedRegion{ExpectedRegion: cli.region, Region: s3Url.Region}
+		return nil, nil, &ErrUnexpectedRegion{ExpectedRegion: cli.region, Region: s3Url.Region}
 	}
 
 	if psk == nil {
@@ -338,7 +338,7 @@ func (cli *S3) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io.Rea
 
 // Get returns an io.ReadCloser instance for the given path (inside the bucket configured for this client).
 // They 'key' parameter refers to the path for the file under the bucket.
-func (cli *S3) Get(key string) (io.ReadCloser, error) {
+func (cli *S3) Get(key string) (io.ReadCloser, *int64, error) {
 
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(cli.bucketName),
@@ -347,15 +347,15 @@ func (cli *S3) Get(key string) (io.ReadCloser, error) {
 
 	result, err := cli.sdkClient.GetObject(input)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return result.Body, nil
+	return result.Body, result.ContentLength, nil
 }
 
 // GetWithPSK returns an io.ReadCloser instance for the given path (inside the bucket configured for this client), using the provided PSK.
 // The 'key' parameter refers to the path for the file under the bucket.
-func (cli *S3) GetWithPSK(key string, psk []byte) (io.ReadCloser, error) {
+func (cli *S3) GetWithPSK(key string, psk []byte) (io.ReadCloser, *int64, error) {
 
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(cli.bucketName),
@@ -364,10 +364,10 @@ func (cli *S3) GetWithPSK(key string, psk []byte) (io.ReadCloser, error) {
 
 	result, err := cli.cryptoClient.GetObjectWithPSK(input, psk)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return result.Body, nil
+	return result.Body, result.ContentLength, nil
 }
 
 // PutWithPSK uploads the provided contents to the key in the bucket configured for this client, using the provided PSK.
