@@ -360,10 +360,12 @@ func (cli *S3) Get(key string) (io.ReadCloser, *int64, error) {
 // The 'key' parameter refers to the path for the file under the bucket.
 func (cli *S3) GetWithPSK(key, filename string, psk []byte) (io.ReadCloser, *int64, error) {
 
+	contentDisposition := "attachment; filename=" + filename
+
 	input := &s3.GetObjectInput{
 		Bucket:                     aws.String(cli.bucketName),
 		Key:                        aws.String(key),
-		ResponseContentDisposition: &filename,
+		ResponseContentDisposition: &contentDisposition,
 	}
 
 	result, err := cli.cryptoClient.GetObjectWithPSK(input, psk)
