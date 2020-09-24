@@ -299,8 +299,8 @@ func (cli *S3) completeUpload(ctx context.Context, uploadID string, req *UploadP
 // in the format specified by URLStyle.
 // More information about s3 URL styles: https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
 // If the URL defines a region (if provided) or bucket different from the one configured in this client, an error will be returned.
-func (cli *S3) GetFromS3URL(rawURL string, style URLStyle) (io.ReadCloser, *int64, error) {
-	return cli.doGetFromS3URL(rawURL, style, nil)
+func (cli *S3) GetFromS3URL(rawURL, filename string, style URLStyle) (io.ReadCloser, *int64, error) {
+	return cli.doGetFromS3URL(rawURL, filename, style, nil)
 
 }
 
@@ -308,11 +308,11 @@ func (cli *S3) GetFromS3URL(rawURL string, style URLStyle) (io.ReadCloser, *int6
 // in the format specified by URLStyle, using the provided PSK for encryption.
 // More information about s3 URL styles: https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
 // If the URL defines a region (if provided) or bucket different from the one configured in this client, an error will be returned.
-func (cli *S3) GetFromS3URLWithPSK(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, *int64, error) {
-	return cli.doGetFromS3URL(rawURL, style, psk)
+func (cli *S3) GetFromS3URLWithPSK(rawURL, filename string, style URLStyle, psk []byte) (io.ReadCloser, *int64, error) {
+	return cli.doGetFromS3URL(rawURL, filename, style, psk)
 }
 
-func (cli *S3) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, *int64, error) {
+func (cli *S3) doGetFromS3URL(rawURL, filename string, style URLStyle, psk []byte) (io.ReadCloser, *int64, error) {
 
 	// Parse URL with the provided format style
 	s3Url, err := ParseURL(rawURL, style)
@@ -334,7 +334,7 @@ func (cli *S3) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io.Rea
 	if psk == nil {
 		return cli.Get(s3Url.Key)
 	}
-	return cli.GetWithPSK(s3Url.Key, psk)
+	return cli.GetWithPSK(s3Url.Key, filename, psk)
 }
 
 // Get returns an io.ReadCloser instance for the given path (inside the bucket configured for this client)
@@ -358,19 +358,18 @@ func (cli *S3) Get(key string) (io.ReadCloser, *int64, error) {
 // GetWithPSK returns an io.ReadCloser instance for the given path (inside the bucket configured for this client)
 // and the content length (size in bytes). It uses the provided PSK for encryption.
 // The 'key' parameter refers to the path for the file under the bucket.
-func (cli *S3) GetWithPSK(key string, psk []byte) (io.ReadCloser, *int64, error) {
+func (cli *S3) GetWithPSK(key, filename string, psk []byte) (io.ReadCloser, *int64, error) {
 
 	input := &s3.GetObjectInput{
-		Bucket: aws.String(cli.bucketName),
-		Key:    aws.String(key),
+		Bucket:                     aws.String(cli.bucketName),
+		Key:                        aws.String(key),
+		ResponseContentDisposition: &filename,
 	}
 
 	result, err := cli.cryptoClient.GetObjectWithPSK(input, psk)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	log.Event(context.Background(), "what is the result", log.INFO, log.Data{"result": result})
 
 	return result.Body, result.ContentLength, nil
 }
