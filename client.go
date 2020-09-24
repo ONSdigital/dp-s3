@@ -370,6 +370,8 @@ func (cli *S3) GetWithPSK(key string, psk []byte) (io.ReadCloser, *int64, error)
 		return nil, nil, err
 	}
 
+	log.Event(context.Background(), "what is the result", log.INFO, log.Data{"result": result.Metadata})
+
 	return result.Body, result.ContentLength, nil
 }
 
