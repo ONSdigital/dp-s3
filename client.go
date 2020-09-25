@@ -363,9 +363,8 @@ func (cli *S3) GetWithPSK(key, filename string, psk []byte) (io.ReadCloser, *int
 	contentDisposition := "attachment; filename=" + filename
 
 	input := &s3.GetObjectInput{
-		Bucket:                     aws.String(cli.bucketName),
-		Key:                        aws.String(key),
-		ResponseContentDisposition: &contentDisposition,
+		Bucket: aws.String(cli.bucketName),
+		Key:    aws.String(key),
 	}
 
 	result, err := cli.cryptoClient.GetObjectWithPSK(input, psk)
@@ -373,6 +372,7 @@ func (cli *S3) GetWithPSK(key, filename string, psk []byte) (io.ReadCloser, *int
 		return nil, nil, err
 	}
 
+	result.ContentDisposition = &contentDisposition
 	return result.Body, result.ContentLength, nil
 }
 
