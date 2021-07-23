@@ -225,8 +225,9 @@ func (cli *S3) CheckPartUploaded(ctx context.Context, req *UploadPartRequest) (b
 		}
 	}
 	if len(uploadID) == 0 {
-		log.Error(ctx, "chunk number not uploaded", nil, log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
-		return false, &ErrNotUploaded{UploadKey: req.UploadKey}
+		err := &ErrNotUploaded{UploadKey: req.UploadKey}
+		log.Error(ctx, "chunk number not uploaded", err, log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
+		return false, err
 	}
 
 	input := &s3.ListPartsInput{
@@ -259,8 +260,9 @@ func (cli *S3) CheckPartUploaded(ctx context.Context, req *UploadPartRequest) (b
 		}
 	}
 
-	log.Error(ctx, "chunk number failed to upload", nil, log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
-	return false, &ErrChunkNumberNotFound{req.ChunkNumber}
+	err = &ErrChunkNumberNotFound{req.ChunkNumber}
+	log.Error(ctx, "chunk number failed to upload", err, log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
+	return false, err
 }
 
 // completeUpload if all parts have been uploaded, we complete the multipart upload.
