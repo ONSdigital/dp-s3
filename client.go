@@ -3,10 +3,12 @@ package s3client
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"sync"
 
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/ONSdigital/s3crypto"
 	"github.com/aws/aws-sdk-go/aws"
@@ -34,31 +36,32 @@ type UploadPartRequest struct {
 }
 
 // NewClient creates a new S3 Client configured for the given region and bucket name.
-// If HasUserDefinedPSK is true, it will also have a crypto client.
 // Note: This function will create a new session, if you already have a session, please use NewUploaderWithSession instead
-func NewClient(region string, bucketName string, hasUserDefinedPSK bool) (*S3, error) {
+// Any error establishing the AWS session will be returned
+func NewClient(region string, bucketName string) (*S3, error) {
 	s, err := session.NewSession(&aws.Config{Region: &region})
 	if err != nil {
-		return nil, err
+		return nil, NewError(
+			fmt.Errorf("error creating session: %w", err),
+			log.Data{
+				"region":      region,
+				"bucket_name": bucketName,
+			},
+		)
 	}
-	return NewClientWithSession(bucketName, hasUserDefinedPSK, s), nil
+	return NewClientWithSession(bucketName, s), nil
 }
 
 // NewClientWithSession creates a new S3 Client configured for the given bucket name, using the provided session and region within it.
-// If HasUserDefinedPSK is true, it will also have a crypto client.
-func NewClientWithSession(bucketName string, hasUserDefinedPSK bool, s *session.Session) *S3 {
+func NewClientWithSession(bucketName string, s *session.Session) *S3 {
+	// Get region for the Session config
+	region := s.Config.Region
 
 	// Create AWS-SDK-S3 client with the session
 	sdkClient := s3.New(s)
 
-	// Get region for the Session config
-	region := s.Config.Region
-
-	// If we require crypto client (HasUserDefinedPSK), create it.
-	var cryptoClient S3CryptoClient
-	if hasUserDefinedPSK {
-		cryptoClient = s3crypto.New(s, &s3crypto.Config{HasUserDefinedPSK: true})
-	}
+	// Create crypto client, which allows user to provide a psk
+	cryptoClient := s3crypto.New(s, &s3crypto.Config{HasUserDefinedPSK: true})
 
 	return InstantiateClient(sdkClient, cryptoClient, bucketName, *region, s)
 }
@@ -92,11 +95,18 @@ func (cli *S3) UploadPart(ctx context.Context, req *UploadPartRequest, payload [
 
 // UploadPartWithPsk handles the uploading a file to AWS S3, into the bucket configured for this client, using a user-defined psk
 func (cli *S3) UploadPartWithPsk(ctx context.Context, req *UploadPartRequest, payload []byte, psk []byte) error {
+	logData := log.Data{
+		"chunk_number": req.ChunkNumber,
+		"max_chunks":   req.TotalChunks,
+		"file_name":    req.FileName,
+		"bucket_name":  cli.bucketName,
+		"user_psk":     psk != nil,
+	}
 
 	// Get UploadID or create it if it does not exist (atomically)
 	uploadID, err := cli.doGetOrCreateMultipartUpload(ctx, req)
 	if err != nil {
-		return err
+		return NewError(err, logData)
 	}
 
 	// Do the upload against AWS
@@ -112,14 +122,10 @@ func (cli *S3) UploadPartWithPsk(ctx context.Context, req *UploadPartRequest, pa
 		psk,
 	)
 	if err != nil {
-		return err
+		return NewError(err, logData)
 	}
 
-	log.Event(ctx, "chunk accepted", log.Data{
-		"chunk_number": req.ChunkNumber,
-		"max_chunks":   req.TotalChunks,
-		"file_name":    req.FileName,
-	}, log.INFO)
+	log.Info(ctx, "chunk accepted", logData)
 
 	// List parts so that we can validate if the upload operation is complete
 	output, err := cli.sdkClient.ListParts(
@@ -130,8 +136,7 @@ func (cli *S3) UploadPartWithPsk(ctx context.Context, req *UploadPartRequest, pa
 		},
 	)
 	if err != nil {
-		log.Event(ctx, "error listing parts", log.ERROR, log.Error(err))
-		return err
+		return NewError(fmt.Errorf("error listing parts: %w", err), logData)
 	}
 
 	// If all parts have been uploaded, we call completeUpload
@@ -157,8 +162,7 @@ func (cli *S3) doGetOrCreateMultipartUpload(ctx context.Context, req *UploadPart
 			Bucket: &cli.bucketName,
 		})
 	if err != nil {
-		log.Event(ctx, "error fetching multipart list", log.ERROR, log.Error(err))
-		return "", err
+		return "", fmt.Errorf("error fetching multpart list: %w", err)
 	}
 
 	// Try to find a multipart upload for the same s3 object that we want
@@ -177,20 +181,18 @@ func (cli *S3) doGetOrCreateMultipartUpload(ctx context.Context, req *UploadPart
 			ContentType: &req.Type,
 		})
 	if err != nil {
-		log.Event(ctx, "error creating multipart upload", log.ERROR, log.Error(err))
-		return "", err
+		return "", fmt.Errorf("error creating multipart upload: %w", err)
 	}
 	return *createMultiOutput.UploadId, nil
 }
 
 // doUploadPart performs the upload using the sdkClient if no psk is provided, or the cryptoClient if psk is provided
 func (cli *S3) doUploadPart(ctx context.Context, input *s3.UploadPartInput, psk []byte) (out *s3.UploadPartOutput, err error) {
-
 	if psk != nil {
 		// Upload Part with PSK
 		out, err = cli.cryptoClient.UploadPartWithPSK(input, psk)
 		if err != nil {
-			log.Event(ctx, "error uploading with psk", log.ERROR, log.Error(err))
+			return nil, fmt.Errorf("error uploading part with psk: %w", err)
 		}
 		return
 	}
@@ -198,7 +200,7 @@ func (cli *S3) doUploadPart(ctx context.Context, input *s3.UploadPartInput, psk 
 	// Upload part without user-defined PSK
 	out, err = cli.sdkClient.UploadPart(input)
 	if err != nil {
-		log.Event(ctx, "error uploading part", log.ERROR, log.Error(err))
+		return nil, fmt.Errorf("error uploading part with psk: %w", err)
 	}
 	return
 }
@@ -206,6 +208,13 @@ func (cli *S3) doUploadPart(ctx context.Context, input *s3.UploadPartInput, psk 
 // CheckPartUploaded returns true only if the chunk corresponding to the provided chunkNumber has been uploaded.
 // If all the chunks have been uploaded, we complete the upload operation.
 func (cli *S3) CheckPartUploaded(ctx context.Context, req *UploadPartRequest) (bool, error) {
+	logData := log.Data{
+		"chunk_number": req.ChunkNumber,
+		"max_chunks":   req.TotalChunks,
+		"file_name":    req.FileName,
+		"bucket_name":  cli.bucketName,
+		"identifier":   req.UploadKey,
+	}
 
 	listMultiInput := &s3.ListMultipartUploadsInput{
 		Bucket: &cli.bucketName,
@@ -213,8 +222,7 @@ func (cli *S3) CheckPartUploaded(ctx context.Context, req *UploadPartRequest) (b
 
 	listMultiOutput, err := cli.sdkClient.ListMultipartUploads(listMultiInput)
 	if err != nil {
-		log.Event(ctx, "error fetching multipart upload list", log.ERROR, log.Error(err))
-		return false, err
+		return false, NewError(fmt.Errorf("error fetching multipart upload list: %w", err), logData)
 	}
 
 	var uploadID string
@@ -225,8 +233,7 @@ func (cli *S3) CheckPartUploaded(ctx context.Context, req *UploadPartRequest) (b
 		}
 	}
 	if len(uploadID) == 0 {
-		log.Event(ctx, "chunk number not uploaded", log.ERROR, log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
-		return false, &ErrNotUploaded{UploadKey: req.UploadKey}
+		return false, NewError(errors.New("s3 key not uploaded"), logData)
 	}
 
 	input := &s3.ListPartsInput{
@@ -237,8 +244,7 @@ func (cli *S3) CheckPartUploaded(ctx context.Context, req *UploadPartRequest) (b
 
 	output, err := cli.sdkClient.ListParts(input)
 	if err != nil {
-		log.Event(ctx, "chunk number verification error", log.ERROR, log.Error(err), log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
-		return false, &ErrListParts{err.Error()}
+		return false, NewError(fmt.Errorf("chunk number verification error: %w", err), logData)
 	}
 
 	// TODO: If there are more than 1000 parts, they will be paginated, so we would need to call ListParts again with the provided Marker until we have all of them.
@@ -254,13 +260,12 @@ func (cli *S3) CheckPartUploaded(ctx context.Context, req *UploadPartRequest) (b
 
 	for _, part := range parts {
 		if *part.PartNumber == int64(req.ChunkNumber) {
-			log.Event(ctx, "chunk number already uploaded", log.INFO, log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName, "identifier": req.UploadKey})
+			log.Info(ctx, "chunk already uploaded", logData)
 			return true, nil
 		}
 	}
 
-	log.Event(ctx, "chunk number failed to upload", log.ERROR, log.Data{"chunk_number": req.ChunkNumber, "file_name": req.FileName})
-	return false, &ErrChunkNumberNotFound{req.ChunkNumber}
+	return false, NewError(errors.New("chunk number not found"), logData)
 }
 
 // completeUpload if all parts have been uploaded, we complete the multipart upload.
@@ -284,12 +289,11 @@ func (cli *S3) completeUpload(ctx context.Context, uploadID string, req *UploadP
 			Bucket: &cli.bucketName,
 		}
 
-		log.Event(ctx, "going to attempt to complete", log.INFO, log.Data{"complete": completeInput})
+		log.Info(ctx, "attemtping to complete multipart upload", log.Data{"complete": completeInput})
 
 		_, err := cli.sdkClient.CompleteMultipartUpload(completeInput)
 		if err != nil {
-			log.Event(ctx, "error completing upload", log.ERROR, log.Error(err))
-			return err
+			return NewError(fmt.Errorf("error completing multipart upload: %w", err), log.Data{"complete": completeInput})
 		}
 	}
 	return nil
@@ -313,22 +317,27 @@ func (cli *S3) GetFromS3URLWithPSK(rawURL string, style URLStyle, psk []byte) (i
 }
 
 func (cli *S3) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, *int64, error) {
+	logData := log.Data{
+		"raw_url":   rawURL,
+		"url_style": style.String(),
+	}
 
 	// Parse URL with the provided format style
 	s3Url, err := ParseURL(rawURL, style)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, NewError(fmt.Errorf("error parsing url: %w", err), logData)
 	}
 
 	// Validate that URL and client bucket names match
 	if s3Url.BucketName != cli.bucketName {
-		return nil, nil, &ErrUnexpectedBucket{
-			ExpectedBucketName: cli.bucketName, BucketName: s3Url.BucketName}
+		logData["bucket_name"] = cli.bucketName
+		return nil, nil, NewError(errors.New("unexpected bucket name in url"), logData)
 	}
 
 	// Validate that URL and client regions match, if URL provides one
 	if len(s3Url.Region) > 0 && s3Url.Region != cli.region {
-		return nil, nil, &ErrUnexpectedRegion{ExpectedRegion: cli.region, Region: s3Url.Region}
+		logData["region"] = cli.region
+		return nil, nil, NewError(errors.New("unexpected aws region in url"), logData)
 	}
 
 	if psk == nil {
@@ -349,7 +358,11 @@ func (cli *S3) Get(key string) (io.ReadCloser, *int64, error) {
 
 	result, err := cli.sdkClient.GetObject(input)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, NewError(fmt.Errorf("error getting object from s3: %w", err), log.Data{
+			"bucket_name": cli.bucketName,
+			"s3_key":      key, // key is the s3 filename with path (it's not a cryptographic key)
+			"user_psk":    false,
+		})
 	}
 
 	return result.Body, result.ContentLength, nil
@@ -367,7 +380,11 @@ func (cli *S3) GetWithPSK(key string, psk []byte) (io.ReadCloser, *int64, error)
 
 	result, err := cli.cryptoClient.GetObjectWithPSK(input, psk)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, NewError(fmt.Errorf("error getting object from s3: %w", err), log.Data{
+			"bucket_name": cli.bucketName,
+			"s3_key":      key, // key is the s3 filename with path (it's not a cryptographic key)
+			"user_psk":    true,
+		})
 	}
 
 	return result.Body, result.ContentLength, nil
@@ -383,17 +400,27 @@ func (cli *S3) PutWithPSK(key *string, reader *bytes.Reader, psk []byte) error {
 		Bucket: &cli.bucketName,
 	}
 
-	_, err := cli.cryptoClient.PutObjectWithPSK(input, psk)
-	return err
+	if _, err := cli.cryptoClient.PutObjectWithPSK(input, psk); err != nil {
+		return NewError(fmt.Errorf("error putting object to s3: %w", err), log.Data{
+			"bucket_name": cli.bucketName,
+			"s3_key":      key, // key is the s3 filename with path (it's not a cryptographic key)
+			"user_psk":    true,
+		})
+	}
+	return nil
 }
 
 // ValidateBucket checks that the bucket exists and returns an error if it
 // does not exist or there was some other error trying to get this information.
 func (cli *S3) ValidateBucket() error {
-	_, err := cli.sdkClient.HeadBucket(
+	if _, err := cli.sdkClient.HeadBucket(
 		&s3.HeadBucketInput{
 			Bucket: aws.String(cli.bucketName),
 		},
-	)
-	return err
+	); err != nil {
+		return NewError(fmt.Errorf("validation error for bucket: %w", err), log.Data{
+			"bucket_name": cli.bucketName,
+		})
+	}
+	return nil
 }

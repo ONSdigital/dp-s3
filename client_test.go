@@ -11,6 +11,7 @@ import (
 
 	s3client "github.com/ONSdigital/dp-s3"
 	"github.com/ONSdigital/dp-s3/mock"
+	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/aws/aws-sdk-go/service/s3"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -86,24 +87,42 @@ func TestGet(t *testing.T) {
 		Convey("GetFromS3URL called with a valid global URL with the wrong bucket returns ErrUnexpectedBucket", func() {
 			wrongBucketGlobalURL := fmt.Sprintf("s3://%s/%s", "wrongBucket", objKey)
 			_, _, err := s3Cli.GetFromS3URL(wrongBucketGlobalURL, s3client.AliasVirtualHostedStyle)
-			So(err, ShouldResemble, &s3client.ErrUnexpectedBucket{ExpectedBucketName: bucket, BucketName: "wrongBucket"})
+			So(err, ShouldResemble, s3client.NewError(
+				errors.New("unexpected bucket name in url"),
+				log.Data{"bucket_name": bucket,
+					"raw_url":   wrongBucketGlobalURL,
+					"url_style": "AliasVirtualHosted",
+				},
+			))
 			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 0)
 		})
 
 		Convey("GetFromS3URL called with a valid regional URL with the wrong region returns ErrUnexpectedBucket", func() {
 			wrongRegionRegionalURL := fmt.Sprintf("https://s3-%s.amazonaws.com/%s/%s", "wrongRegion", bucket, objKey)
 			_, _, err := s3Cli.GetFromS3URL(wrongRegionRegionalURL, s3client.PathStyle)
-			So(err, ShouldResemble, &s3client.ErrUnexpectedRegion{ExpectedRegion: region, Region: "wrongRegion"})
+			So(err, ShouldResemble, s3client.NewError(
+				errors.New("unexpected aws region in url"),
+				log.Data{"region": region,
+					"raw_url":   wrongRegionRegionalURL,
+					"url_style": "Path",
+				},
+			))
 			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 0)
 		})
 
 		Convey("GetFromS3URL called with a malformed URL returns error", func() {
 			malformedURL := "This%Url%Is%Malformed"
 			_, _, err := s3Cli.GetFromS3URL(malformedURL, s3client.AliasVirtualHostedStyle)
-			So(err, ShouldResemble, &url.Error{Op: "parse", URL: malformedURL, Err: url.EscapeError("%Ur")})
+			So(err, ShouldResemble, s3client.NewError(
+				fmt.Errorf("error parsing url: %w",
+					&url.Error{Op: "parse", URL: malformedURL, Err: url.EscapeError("%Ur")},
+				),
+				log.Data{
+					"raw_url":   malformedURL,
+					"url_style": "AliasVirtualHosted"},
+			))
 			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 0)
 		})
-
 	})
 }
 
@@ -458,7 +477,7 @@ func TestCheckUpload(t *testing.T) {
 			So(ok, ShouldBeFalse)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In1.Bucket, ShouldResemble, bucket)
-			So(err, ShouldResemble, &s3client.ErrNotUploaded{UploadKey: "12345"})
+			So(err, ShouldResemble, s3client.NewError(errors.New("asdfasdfsd"), nil))
 		})
 
 		Convey("An error listing parts for a particular multipart upload results in ErrListParts error", func() {
@@ -493,7 +512,7 @@ func TestCheckUpload(t *testing.T) {
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In1.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
-			So(err, ShouldResemble, &s3client.ErrListParts{Msg: skdListPartsErr.Error()})
+			So(err, ShouldResemble, s3client.NewError(errors.New("asdfasdfsd"), nil))
 		})
 
 		Convey("If the chunk has been uploaded but the multipart upload is not completed yet, then the function should return true", func() {
@@ -559,7 +578,7 @@ func TestCheckUpload(t *testing.T) {
 
 			// Validate
 			So(ok, ShouldBeFalse)
-			So(err, ShouldResemble, &s3client.ErrChunkNumberNotFound{1})
+			So(err, ShouldResemble, s3client.NewError(errors.New("asdfasdfsd"), nil))
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In1.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)

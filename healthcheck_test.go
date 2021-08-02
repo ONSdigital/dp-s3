@@ -26,6 +26,9 @@ var msgWrongRegion = "BucketRegionError"
 // msgInexistentRegion is the message returned when we try to get a bucket with an inexistent region
 var msgInexistentRegion = "RequestError"
 
+// msgBucketNotFound is the message returned when we try to get a bucket that does not exist
+var msgBucketNotFound = "BucketNotFound"
+
 // bucketExists is the mock function for requests for existing buckets
 func bucketExists(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
 	return &s3.HeadBucketOutput{}, nil
@@ -33,8 +36,7 @@ func bucketExists(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
 
 // bucketDoesNotExist is the mock function for requests with inexistent regions
 func bucketDoesNotExist(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
-	errBucket := s3client.ErrBucketNotFound{BucketName: InexistentBucket}
-	return &s3.HeadBucketOutput{}, &errBucket
+	return &s3.HeadBucketOutput{}, errors.New(msgBucketNotFound)
 }
 
 // bucketWrongRegion is the mock function for requests with wrong region for bucket
@@ -84,9 +86,9 @@ func TestBucketDoesNotExist(t *testing.T) {
 		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
 			s3Cli.Checker(context.Background(), checkState)
 			So(len(sdkMock.HeadBucketCalls()), ShouldEqual, 1)
-			expectedErr := s3client.ErrBucketNotFound{BucketName: InexistentBucket}
+			expectedMessage := "aaa"
 			So(checkState.Status(), ShouldEqual, health.StatusCritical)
-			So(checkState.Message(), ShouldEqual, expectedErr.Error())
+			So(checkState.Message(), ShouldEqual, expectedMessage)
 			So(checkState.StatusCode(), ShouldEqual, 0)
 		})
 	})

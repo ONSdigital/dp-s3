@@ -1,6 +1,7 @@
 package s3client_test
 
 import (
+	"errors"
 	"testing"
 
 	s3client "github.com/ONSdigital/dp-s3"
@@ -49,17 +50,14 @@ func TestUpload(t *testing.T) {
 			_, err := uploader.Upload(&s3manager.UploadInput{
 				Bucket: &wrongBucket,
 			})
-			So(err, ShouldResemble, &s3client.ErrUnexpectedBucket{
-				BucketName:         wrongBucket,
-				ExpectedBucketName: ExistingBucket,
-			})
+			So(err, ShouldResemble, s3client.NewError(errors.New("asdfasdfsd"), nil))
 			So(len(sdkUploaderMock.UploadCalls()), ShouldEqual, 0)
 		})
 
 		Convey("Trying to upload a file with user-defined PSK results in ErrInvalidUploader", func() {
 			psk := []byte("test psk")
 			_, err := uploader.UploadWithPSK(&s3manager.UploadInput{}, psk)
-			So(err, ShouldResemble, &s3client.ErrInvalidUploader{true})
+			So(err, ShouldResemble, s3client.NewError(errors.New("asdfasdfsd"), nil))
 			So(len(sdkUploaderMock.UploadCalls()), ShouldEqual, 0)
 		})
 
@@ -99,16 +97,13 @@ func TestUploadWithPSK(t *testing.T) {
 			_, err := uploader.UploadWithPSK(&s3manager.UploadInput{
 				Bucket: &wrongBucket,
 			}, psk)
-			So(err, ShouldResemble, &s3client.ErrUnexpectedBucket{
-				BucketName:         wrongBucket,
-				ExpectedBucketName: ExistingBucket,
-			})
+			So(err, ShouldResemble, s3client.NewError(errors.New("asdfasdfsd"), nil))
 			So(len(cryptoUploaderMock.UploadWithPSKCalls()), ShouldEqual, 0)
 		})
 
 		Convey("Trying to upload a file with user-defined PSK results in ErrInvalidUploader", func() {
 			_, err := uploader.Upload(&s3manager.UploadInput{})
-			So(err, ShouldResemble, &s3client.ErrInvalidUploader{false})
+			So(err, ShouldResemble, s3client.NewError(errors.New("asdfasdfsd"), nil))
 			So(len(cryptoUploaderMock.UploadWithPSKCalls()), ShouldEqual, 0)
 		})
 

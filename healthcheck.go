@@ -2,6 +2,7 @@ package s3client
 
 import (
 	"context"
+	"fmt"
 
 	health "github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -40,8 +41,7 @@ func (cli *S3) handleAWSErr(err awserr.Error, state *health.CheckState) {
 	switch code {
 	case codeNotFound:
 		// Bucket not found
-		errBucket := ErrBucketNotFound{BucketName: cli.bucketName}
-		state.Update(health.StatusCritical, errBucket.Error(), 0)
+		state.Update(health.StatusCritical, fmt.Sprintf("Bucket not found: %s", cli.bucketName), 0)
 	default:
 		// Other AWS error
 		state.Update(health.StatusCritical, err.Code(), 0)
