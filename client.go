@@ -413,12 +413,10 @@ func (cli *S3) PutWithPSK(key *string, reader *bytes.Reader, psk []byte) error {
 // ValidateBucket checks that the bucket exists and returns an error if it
 // does not exist or there was some other error trying to get this information.
 func (cli *S3) ValidateBucket() error {
-	if _, err := cli.sdkClient.HeadBucket(
+	_, err := cli.sdkClient.HeadBucket(
 		&s3.HeadBucketInput{
 			Bucket: aws.String(cli.bucketName),
 		},
-	); err != nil {
-		return err
-	}
-	return nil
+	)
+	return err
 }

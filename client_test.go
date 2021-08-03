@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/url"
 	"testing"
@@ -40,11 +41,9 @@ func TestGet(t *testing.T) {
 		Convey("Get returns an io.Reader with the expected payload", func() {
 			ret, cLen, err := s3Cli.Get(objKey)
 			So(err, ShouldBeNil)
-			buf := new(bytes.Buffer)
-			buf.ReadFrom(ret)
-			ret.Close()
-			So(buf.Bytes(), ShouldResemble, payload)
 			So(*cLen, ShouldEqual, contentLen)
+			b := readBytes(ret)
+			So(b, ShouldResemble, payload)
 			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 1)
 			So(sdkMock.GetObjectCalls()[0].In1, ShouldResemble, &s3.GetObjectInput{
 				Bucket: &bucket,
@@ -56,11 +55,9 @@ func TestGet(t *testing.T) {
 			validGlobalURL := fmt.Sprintf("s3://%s/%s", bucket, objKey)
 			ret, cLen, err := s3Cli.GetFromS3URL(validGlobalURL, s3client.AliasVirtualHostedStyle)
 			So(err, ShouldBeNil)
-			buf := new(bytes.Buffer)
-			buf.ReadFrom(ret)
-			ret.Close()
 			So(*cLen, ShouldEqual, contentLen)
-			So(buf.Bytes(), ShouldResemble, payload)
+			b := readBytes(ret)
+			So(b, ShouldResemble, payload)
 			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 1)
 			So(sdkMock.GetObjectCalls()[0].In1, ShouldResemble, &s3.GetObjectInput{
 				Bucket: &bucket,
@@ -72,11 +69,9 @@ func TestGet(t *testing.T) {
 			validRegionalURL := fmt.Sprintf("https://s3-%s.amazonaws.com/%s/%s", region, bucket, objKey)
 			ret, cLen, err := s3Cli.GetFromS3URL(validRegionalURL, s3client.PathStyle)
 			So(err, ShouldBeNil)
-			buf := new(bytes.Buffer)
-			buf.ReadFrom(ret)
-			ret.Close()
 			So(*cLen, ShouldEqual, contentLen)
-			So(buf.Bytes(), ShouldResemble, payload)
+			b := readBytes(ret)
+			So(b, ShouldResemble, payload)
 			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 1)
 			So(sdkMock.GetObjectCalls()[0].In1, ShouldResemble, &s3.GetObjectInput{
 				Bucket: &bucket,
@@ -150,11 +145,9 @@ func TestGetWithPSK(t *testing.T) {
 		Convey("GetWithPSK returns an io.Reader with the expected payload", func() {
 			ret, cLen, err := s3Cli.GetWithPSK(objKey, psk)
 			So(err, ShouldBeNil)
-			buf := new(bytes.Buffer)
-			buf.ReadFrom(ret)
-			ret.Close()
 			So(*cLen, ShouldEqual, contentLen)
-			So(buf.Bytes(), ShouldResemble, payload)
+			b := readBytes(ret)
+			So(b, ShouldResemble, payload)
 			So(len(cryptoMock.GetObjectWithPSKCalls()), ShouldEqual, 1)
 			So(cryptoMock.GetObjectWithPSKCalls()[0].In2, ShouldResemble, psk)
 			So(cryptoMock.GetObjectWithPSKCalls()[0].In1, ShouldResemble, &s3.GetObjectInput{
@@ -167,11 +160,9 @@ func TestGetWithPSK(t *testing.T) {
 			validGlobalURL := fmt.Sprintf("s3://%s/%s", bucket, objKey)
 			ret, cLen, err := s3Cli.GetFromS3URLWithPSK(validGlobalURL, s3client.AliasVirtualHostedStyle, psk)
 			So(err, ShouldBeNil)
-			buf := new(bytes.Buffer)
-			buf.ReadFrom(ret)
-			ret.Close()
 			So(*cLen, ShouldEqual, contentLen)
-			So(buf.Bytes(), ShouldResemble, payload)
+			b := readBytes(ret)
+			So(b, ShouldResemble, payload)
 			So(len(cryptoMock.GetObjectWithPSKCalls()), ShouldEqual, 1)
 			So(cryptoMock.GetObjectWithPSKCalls()[0].In2, ShouldResemble, psk)
 			So(cryptoMock.GetObjectWithPSKCalls()[0].In1, ShouldResemble, &s3.GetObjectInput{
@@ -247,8 +238,8 @@ func TestUploadPart(t *testing.T) {
 			}, payload)
 
 			// Validate
-			So(err.Error(), ShouldResemble,
-				fmt.Errorf("error fetching multipart list: %w", listMultipartUploadsErr).Error())
+			So(err, ShouldNotBeNil)
+			So(err.Error(), ShouldResemble, fmt.Errorf("error fetching multipart list: %w", listMultipartUploadsErr).Error())
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In1.Bucket, ShouldResemble, ExistingBucket)
 		})
@@ -452,6 +443,7 @@ func TestCheckUpload(t *testing.T) {
 			So(ok, ShouldBeFalse)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In1.Bucket, ShouldResemble, ExistingBucket)
+			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, fmt.Errorf("error fetching multipart upload list: %w", listMultipartUploadsErr).Error())
 		})
 
@@ -478,6 +470,7 @@ func TestCheckUpload(t *testing.T) {
 			So(ok, ShouldBeFalse)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In1.Bucket, ShouldResemble, bucket)
+			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, "s3 key not uploaded")
 		})
 
@@ -513,6 +506,7 @@ func TestCheckUpload(t *testing.T) {
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In1.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
+			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, fmt.Errorf("chunk number verification error: %w", skdListPartsErr).Error())
 		})
 
@@ -579,6 +573,7 @@ func TestCheckUpload(t *testing.T) {
 
 			// Validate
 			So(ok, ShouldBeFalse)
+			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, "chunk number not found")
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In1.Bucket, ShouldResemble, bucket)
@@ -665,4 +660,14 @@ func createUploads(uploadID, key string) *s3.ListMultipartUploadsOutput {
 	return &s3.ListMultipartUploadsOutput{
 		Uploads: uploads,
 	}
+}
+
+// readBytes reads the bytes from the provided ReadCloser and asserts that there is no error
+func readBytes(ret io.ReadCloser) []byte {
+	buf := new(bytes.Buffer)
+	_, err := buf.ReadFrom(ret)
+	So(err, ShouldBeNil)
+	err = ret.Close()
+	So(err, ShouldBeNil)
+	return buf.Bytes()
 }

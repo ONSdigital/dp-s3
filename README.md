@@ -39,38 +39,66 @@ Please, see our [terraform repository](https://github.com/ONSdigital/dp-setup/tr
 
 #### S3 Client Usage
 
-You can access AWS S3 to get objects and do multipart uploads by creating a new client using the `NewClient()` function in client.go with the right region and bucketName,
-or `NewClientWithSession()` if you already have an established AWS session.
-Please, note that you will only be able to see S3 buckets created in a particular region using a client accessing that region.
+The S3 client wraps the AWS SDK s3 client and offers functionality to read objects from S3 and upload objects using `multipart upload`, which is an AWS SDK functionality to perform uploads in chunks. More information [here](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html)
 
+The client contains a bucket and region, note that the bucket needs to be created in the region that you provide in order to access it.
+
+There are 2 available constructors:
+- Constructor without AWS session (will create a new session):
 ```
 s3cli := s3client.NewClient(<region>, <bucket>)
-s3cli.Get(<S3ObjectKey>)
-...
+```
+- Constructor with AWS session (will reuse the provided session):
+```
+s3cli := s3client.NewClientWithSession(<bucket>, <awsSession>)
+```
+It is recommended to create a single AWS session in your service and reuse it if you need other clients. The client offers a session getter: `s3cli.Session()`
+
+The S3 client exposes functions to get or upload files using the vanilla aws sdk, or the s3crypto wrapper, which allows you to provide a psk (pre-shared key) for encryption.
+
+Functions that have the suffix `WithPSK` allow you to provide a psk for encryption. For example:
+- Get an un-encrypted object from S3
+```
+file, err := s3cli.Get("my/s3/file")
+```
+- Get an encrypted object from S3, using a psk:
+```
+file, err := s3cli.GetWithPSK("my/s3/file", psk)
 ```
 
-```
-s3cli := NewClientWithSession(<bucket>, <awsSession>)
-s3cli.Get(<S3ObjectKey>)
-...
-```
 
 #### Uploader Usage
 
-You can access AWS S3 to upload (PUT) objects by creating a new uploader using the `NewUploader()` function in uploader.go with the right region and bucketName,
-or `NewUploaderWithSession()` if you already have an established AWS session.
-Please, note that you will only be able to see S3 buckets created in a particular region using a client accessing that region.
+The Uploader is a higher level S3 client that wraps the SDK uploader, from s3manager package, as well as the lower level S3 client.
+This offers functionality to put objects in S3 in a single func call, hiding the low level details of chunking. More information [here](https://docs.aws.amazon.com/sdk-for-go/api/service/s3/s3manager/#Uploader)
 
+Similarly to the s3 client, you can create an uploader and establish a new session, or reuse an existing one:
+
+- Constructor without AWS session (will create a new session):
 ```
 s3Uploader := s3client.NewUploader(<region>, <bucket>)
-s3Uploader.Upload(<input>)
-...
+```
+- Constructor with AWS session (will reuse the provided session):
+```
+s3Uploader := s3client.NewUploaderWithSession(<bucket>, <awsSession>)
 ```
 
+Similarly to the s3 client, it is recommended to reuse AWS sessions between clients/uploaderes.
+
+Functions that have the suffix `WithPSK` allow you to provide a psk for encryption. For example:
+- Upload an un-encrypted object to S3
 ```
-s3Uploader := NewUploaderWithSession(<bucket>, <awsSession>)
-s3Uploader.Upload(<input>)
-...
+result, err := s3Uploader.Upload(&s3manager.UploadInput{
+		Body:   file.Reader,
+		Key:    &filename,
+	})
+```
+- Upload an encrypted object to S3, using a psk:
+```
+result, err := s3Uploader.UploadWithPSK(&s3manager.UploadInput{
+		Body:   file.Reader,
+		Key:    &filename,
+	}, psk)
 ```
 
 #### URL Usage
