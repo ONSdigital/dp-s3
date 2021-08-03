@@ -44,13 +44,13 @@ or `NewClientWithSession()` if you already have an established AWS session.
 Please, note that you will only be able to see S3 buckets created in a particular region using a client accessing that region.
 
 ```
-s3cli := s3client.NewClient(<region>, <bucket>, <hasUserDefinedPSK>)
+s3cli := s3client.NewClient(<region>, <bucket>)
 s3cli.Get(<S3ObjectKey>)
 ...
 ```
 
 ```
-s3cli := NewClientWithSession(<bucket>, <hasUserDefinedPSK>, <awsSession>)
+s3cli := NewClientWithSession(<bucket>, <awsSession>)
 s3cli.Get(<S3ObjectKey>)
 ...
 ```
@@ -62,13 +62,13 @@ or `NewUploaderWithSession()` if you already have an established AWS session.
 Please, note that you will only be able to see S3 buckets created in a particular region using a client accessing that region.
 
 ```
-s3Uploader := s3client.NewUploader(<region>, <bucket>, <hasUserDefinedPSK>)
+s3Uploader := s3client.NewUploader(<region>, <bucket>)
 s3Uploader.Upload(<input>)
 ...
 ```
 
 ```
-s3Uploader := NewUploaderWithSession(<bucket>, <hasUserDefinedPSK>, <awsSession>)
+s3Uploader := NewUploaderWithSession(<bucket>, <awsSession>)
 s3Uploader.Upload(<input>)
 ...
 ```
