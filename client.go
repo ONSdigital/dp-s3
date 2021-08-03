@@ -162,7 +162,7 @@ func (cli *S3) doGetOrCreateMultipartUpload(ctx context.Context, req *UploadPart
 			Bucket: &cli.bucketName,
 		})
 	if err != nil {
-		return "", fmt.Errorf("error fetching multpart list: %w", err)
+		return "", fmt.Errorf("error fetching multipart list: %w", err)
 	}
 
 	// Try to find a multipart upload for the same s3 object that we want
@@ -418,9 +418,7 @@ func (cli *S3) ValidateBucket() error {
 			Bucket: aws.String(cli.bucketName),
 		},
 	); err != nil {
-		return NewError(fmt.Errorf("validation error for bucket: %w", err), log.Data{
-			"bucket_name": cli.bucketName,
-		})
+		return err
 	}
 	return nil
 }

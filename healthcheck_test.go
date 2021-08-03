@@ -86,9 +86,8 @@ func TestBucketDoesNotExist(t *testing.T) {
 		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
 			s3Cli.Checker(context.Background(), checkState)
 			So(len(sdkMock.HeadBucketCalls()), ShouldEqual, 1)
-			expectedMessage := "aaa"
 			So(checkState.Status(), ShouldEqual, health.StatusCritical)
-			So(checkState.Message(), ShouldEqual, expectedMessage)
+			So(checkState.Message(), ShouldEqual, msgBucketNotFound)
 			So(checkState.StatusCode(), ShouldEqual, 0)
 		})
 	})
@@ -109,9 +108,8 @@ func TestBucketUnexpectedRegion(t *testing.T) {
 		Convey("Checker updates the CheckState to a critical state with the relevant error message", func() {
 			s3Cli.Checker(context.Background(), checkState)
 			So(len(sdkMock.HeadBucketCalls()), ShouldEqual, 1)
-			expectedErr := errors.New(msgWrongRegion)
 			So(checkState.Status(), ShouldEqual, health.StatusCritical)
-			So(checkState.Message(), ShouldEqual, expectedErr.Error())
+			So(checkState.Message(), ShouldEqual, msgWrongRegion)
 			So(checkState.StatusCode(), ShouldEqual, 0)
 		})
 	})

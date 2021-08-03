@@ -63,8 +63,8 @@ func (u *Uploader) UploadWithPSK(input *s3manager.UploadInput, psk []byte) (*s3m
 	if input == nil {
 		return nil, NewError(errors.New("nil input provided to UploadWithPSK"), logData)
 	}
-	logData["s3_key"] = input.Key // key is the s3 filename with path (it's not a cryptographic key)
-	if psk == nil || len(psk) == 0 {
+	logData["s3_key"] = *input.Key // key is the s3 filename with path (it's not a cryptographic key)
+	if len(psk) == 0 {
 		return nil, NewError(errors.New("nil or empty psk provided to UploadWithPSK"), logData)
 	}
 
@@ -111,7 +111,7 @@ func (u *Uploader) validateRequestBucket(input *s3manager.UploadInput) error {
 			errors.New("unexpected bucket name provided in upload input"),
 			log.Data{
 				"client_bucket_name": u.bucketName,
-				"input_bucket_name":  input.Bucket,
+				"input_bucket_name":  *input.Bucket,
 			})
 	}
 	return nil

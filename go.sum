@@ -24,8 +24,8 @@ github.com/ONSdigital/log.go/v2 v2.0.5 h1:kl2lF0vr3BQDwPTAUcarDvX4Um3uE3fjVRfLoH
 github.com/ONSdigital/log.go/v2 v2.0.5/go.mod h1:PR7vXrv9dZKUc7SI/0toxBbStk84snmybBnWpe+xY2o=
 github.com/ONSdigital/s3crypto v0.0.0-20180725145621-f8943119a487 h1:gQ8g6w/Pe2e1bt1Ht//tQXPxNpwHFcPbi09MRGKH0eM=
 github.com/ONSdigital/s3crypto v0.0.0-20180725145621-f8943119a487/go.mod h1:sYVkbMGvEplxktSXXSOVMQgGOuhqIXX5qBns81v1vas=
-github.com/aws/aws-sdk-go v1.40.12 h1:66+IAWhl+aaZCW1+ndS/GNfAxy8tJca2cMoIF2O325I=
-github.com/aws/aws-sdk-go v1.40.12/go.mod h1:585smgzpB/KqRA+K3y/NL/oYRqQvpNJYvLm+LY1U59Q=
+github.com/aws/aws-sdk-go v1.40.13 h1:QC1uYnUqVjhw0DEoIkmloErlno8t7NAtxFU+4fLWRTU=
+github.com/aws/aws-sdk-go v1.40.13/go.mod h1:585smgzpB/KqRA+K3y/NL/oYRqQvpNJYvLm+LY1U59Q=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/facebookgo/freeport v0.0.0-20150612182905-d4adf43b75b9/go.mod h1:uPmAp6Sws4L7+Q/OokbWDAK1ibXYhB3PXFP1kol5hPg=

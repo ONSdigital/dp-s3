@@ -247,7 +247,8 @@ func TestUploadPart(t *testing.T) {
 			}, payload)
 
 			// Validate
-			So(err, ShouldResemble, listMultipartUploadsErr)
+			So(err.Error(), ShouldResemble,
+				fmt.Errorf("error fetching multipart list: %w", listMultipartUploadsErr).Error())
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In1.Bucket, ShouldResemble, ExistingBucket)
 		})
@@ -451,7 +452,7 @@ func TestCheckUpload(t *testing.T) {
 			So(ok, ShouldBeFalse)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In1.Bucket, ShouldResemble, ExistingBucket)
-			So(err, ShouldResemble, listMultipartUploadsErr)
+			So(err.Error(), ShouldResemble, fmt.Errorf("error fetching multipart upload list: %w", listMultipartUploadsErr).Error())
 		})
 
 		Convey("If the upload S3 object key cannot be found in the list of multipart uploads, then the CheckUpload will fail with a ErrNotUploaded error", func() {
@@ -477,7 +478,7 @@ func TestCheckUpload(t *testing.T) {
 			So(ok, ShouldBeFalse)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In1.Bucket, ShouldResemble, bucket)
-			So(err, ShouldResemble, s3client.NewError(errors.New("asdfasdfsd"), nil))
+			So(err.Error(), ShouldResemble, "s3 key not uploaded")
 		})
 
 		Convey("An error listing parts for a particular multipart upload results in ErrListParts error", func() {
@@ -512,7 +513,7 @@ func TestCheckUpload(t *testing.T) {
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In1.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
-			So(err, ShouldResemble, s3client.NewError(errors.New("asdfasdfsd"), nil))
+			So(err.Error(), ShouldResemble, fmt.Errorf("chunk number verification error: %w", skdListPartsErr).Error())
 		})
 
 		Convey("If the chunk has been uploaded but the multipart upload is not completed yet, then the function should return true", func() {
@@ -578,7 +579,7 @@ func TestCheckUpload(t *testing.T) {
 
 			// Validate
 			So(ok, ShouldBeFalse)
-			So(err, ShouldResemble, s3client.NewError(errors.New("asdfasdfsd"), nil))
+			So(err.Error(), ShouldResemble, "chunk number not found")
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In1.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)

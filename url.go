@@ -45,7 +45,7 @@ func (s3Url *S3Url) String(style URLStyle) (string, error) {
 	switch style {
 	case PathStyle:
 		if len(s3Url.Region) == 0 {
-			return "", errors.New("Path style format requires a region")
+			return "", errors.New("path style format requires a region")
 		}
 		url := "%s://s3-%s.amazonaws.com/%s/%s"
 		return fmt.Sprintf(url, s3Url.Scheme, s3Url.Region, s3Url.BucketName, s3Url.Key), nil
@@ -54,7 +54,7 @@ func (s3Url *S3Url) String(style URLStyle) (string, error) {
 		return fmt.Sprintf(url, s3Url.Scheme, s3Url.BucketName, s3Url.Key), nil
 	case VirtualHostedStyle:
 		if len(s3Url.Region) == 0 {
-			return "", errors.New("Virtual-hosted style format requires a region")
+			return "", errors.New("virtual-hosted style format requires a region")
 		}
 		url := "%s://%s.s3-%s.amazonaws.com/%s"
 		return fmt.Sprintf(url, s3Url.Scheme, s3Url.BucketName, s3Url.Region, s3Url.Key), nil
@@ -65,7 +65,7 @@ func (s3Url *S3Url) String(style URLStyle) (string, error) {
 		url := "%s://%s/%s"
 		return fmt.Sprintf(url, s3Url.Scheme, s3Url.BucketName, s3Url.Key), nil
 	}
-	return "", errors.New("Undefined style")
+	return "", errors.New("undefined style")
 }
 
 // ParseURL creates an S3Url struct from the provided rawULR and format style
@@ -82,7 +82,7 @@ func ParseURL(rawURL string, style URLStyle) (*S3Url, error) {
 	case AliasVirtualHostedStyle:
 		return ParseAliasVirtualHostedURL(rawURL)
 	}
-	return nil, errors.New("Undefined style")
+	return nil, errors.New("undefined style")
 }
 
 // ParsePathStyleURL creates an S3Url struct from the provided path-style url string

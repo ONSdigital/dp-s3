@@ -128,23 +128,23 @@ func TestParsing(t *testing.T) {
 
 		// URLs by style and expected generated s3Url objects
 		urls := map[s3client.URLStyle]map[string]*s3client.S3Url{
-			s3client.PathStyle: map[string]*s3client.S3Url{
+			s3client.PathStyle: {
 				"https://s3-eu-west-1.amazonaws.com/csv-bucket/dir1/test-file.csv": expectedRegionalHttpsUrl,
 				"s3://s3-eu-west-1.amazonaws.com/csv-bucket/dir1/test-file.csv":    expectedRegionalS3Url,
 			},
-			s3client.VirtualHostedStyle: map[string]*s3client.S3Url{
+			s3client.VirtualHostedStyle: {
 				"https://csv-bucket.s3-eu-west-1.amazonaws.com/dir1/test-file.csv": expectedRegionalHttpsUrl,
 				"s3://csv-bucket.s3-eu-west-1.amazonaws.com/dir1/test-file.csv":    expectedRegionalS3Url,
 			},
-			s3client.GlobalPathStyle: map[string]*s3client.S3Url{
+			s3client.GlobalPathStyle: {
 				"https://s3.amazonaws.com/csv-bucket/dir1/test-file.csv": expectedGlobalHttpsUrl,
 				"s3://s3.amazonaws.com/csv-bucket/dir1/test-file.csv":    expectedGlobalS3Url,
 			},
-			s3client.GlobalVirtualHostedStyle: map[string]*s3client.S3Url{
+			s3client.GlobalVirtualHostedStyle: {
 				"https://csv-bucket.s3.amazonaws.com/dir1/test-file.csv": expectedGlobalHttpsUrl,
 				"s3://csv-bucket.s3.amazonaws.com/dir1/test-file.csv":    expectedGlobalS3Url,
 			},
-			s3client.AliasVirtualHostedStyle: map[string]*s3client.S3Url{
+			s3client.AliasVirtualHostedStyle: {
 				"https://csv-bucket/dir1/test-file.csv": expectedGlobalHttpsUrl,
 				"s3://csv-bucket/dir1/test-file.csv":    expectedGlobalS3Url,
 			},
@@ -172,7 +172,7 @@ func TestParsing(t *testing.T) {
 		})
 
 		Convey("Trying to parse an empty S3 raw url results in error ", func() {
-			for style, _ := range urls {
+			for style := range urls {
 				_, err := s3client.ParseURL("", style)
 				So(err, ShouldNotBeNil)
 			}
@@ -180,7 +180,7 @@ func TestParsing(t *testing.T) {
 
 		Convey("Tying to parse an s3 url that is missing the object key, results in error", func() {
 			missingBucketUrl := "s3://some-file"
-			for style, _ := range urls {
+			for style := range urls {
 				_, err := s3client.ParseURL(missingBucketUrl, style)
 				So(err, ShouldNotBeNil)
 			}
@@ -189,7 +189,7 @@ func TestParsing(t *testing.T) {
 		Convey("Trying to parse an s3 url with empty bucket or key results in error", func() {
 			emptyValuesUrl1 := "s3://///////"
 			emptyValuesUrl2 := fmt.Sprintf("s3:/%s/", expectedBucketName)
-			for style, _ := range urls {
+			for style := range urls {
 				_, err := s3client.ParseURL(emptyValuesUrl1, style)
 				So(err, ShouldNotBeNil)
 				_, err = s3client.ParseURL(emptyValuesUrl2, style)
@@ -199,7 +199,7 @@ func TestParsing(t *testing.T) {
 
 		Convey("Tying to parse an s3 url that is missing the bucket name and object key results in error", func() {
 			missingBucketUrl := "s3://"
-			for style, _ := range urls {
+			for style := range urls {
 				_, err := s3client.ParseURL(missingBucketUrl, style)
 				So(err, ShouldNotBeNil)
 			}
@@ -207,7 +207,7 @@ func TestParsing(t *testing.T) {
 
 		Convey("Trying to parse a malformed s3 url results in error", func() {
 			malformedURL := "This%Url%Is%Malformed"
-			for style, _ := range urls {
+			for style := range urls {
 				_, err := s3client.ParseURL(malformedURL, style)
 				So(err, ShouldNotBeNil)
 			}
