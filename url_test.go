@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	s3client "github.com/ONSdigital/dp-s3"
+	s3client "github.com/ONSdigital/dp-s3/v2"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

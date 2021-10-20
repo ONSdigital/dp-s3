@@ -4,7 +4,7 @@
 package mock
 
 import (
-	"github.com/ONSdigital/dp-s3"
+	"github.com/ONSdigital/dp-s3/v2"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"sync"
 )

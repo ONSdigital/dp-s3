@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	health "github.com/ONSdigital/dp-healthcheck/healthcheck"
+	health "github.com/ONSdigital/dp-healthcheck/v2/healthcheck"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 )
 

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	health "github.com/ONSdigital/dp-healthcheck/healthcheck"
-	s3client "github.com/ONSdigital/dp-s3"
-	"github.com/ONSdigital/dp-s3/mock"
+	health "github.com/ONSdigital/dp-healthcheck/v2/healthcheck"
+	s3client "github.com/ONSdigital/dp-s3/v2"
+	"github.com/ONSdigital/dp-s3/v2/mock"
 	"github.com/aws/aws-sdk-go/service/s3"
 	. "github.com/smartystreets/goconvey/convey"
 )

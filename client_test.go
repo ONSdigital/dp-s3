@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"testing"
 
-	s3client "github.com/ONSdigital/dp-s3"
-	"github.com/ONSdigital/dp-s3/mock"
+	s3client "github.com/ONSdigital/dp-s3/v2"
+	"github.com/ONSdigital/dp-s3/v2/mock"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/aws/aws-sdk-go/service/s3"
 	. "github.com/smartystreets/goconvey/convey"
