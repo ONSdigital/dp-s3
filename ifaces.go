@@ -1,6 +1,8 @@
 package s3client
 
 import (
+	"context"
+
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
@@ -31,6 +33,7 @@ type S3CryptoClient interface {
 // S3SDKUploader represents the sdk uploader with methods required by dp-s3 client
 type S3SDKUploader interface {
 	Upload(*s3manager.UploadInput, ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
+	UploadWithContext(context.Context, *s3manager.UploadInput, ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
 }
 
 // S3CryptoUploader represents the s3crypto Uploader with methods required to upload parts with encryption

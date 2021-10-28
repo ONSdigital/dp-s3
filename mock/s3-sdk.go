@@ -9,328 +9,325 @@ import (
 	"sync"
 )
 
-var (
-	lockS3SDKClientMockCompleteMultipartUpload sync.RWMutex
-	lockS3SDKClientMockCreateMultipartUpload   sync.RWMutex
-	lockS3SDKClientMockGetObject               sync.RWMutex
-	lockS3SDKClientMockHeadBucket              sync.RWMutex
-	lockS3SDKClientMockListMultipartUploads    sync.RWMutex
-	lockS3SDKClientMockListParts               sync.RWMutex
-	lockS3SDKClientMockUploadPart              sync.RWMutex
-)
-
 // Ensure, that S3SDKClientMock does implement s3client.S3SDKClient.
 // If this is not the case, regenerate this file with moq.
 var _ s3client.S3SDKClient = &S3SDKClientMock{}
 
 // S3SDKClientMock is a mock implementation of s3client.S3SDKClient.
 //
-//     func TestSomethingThatUsesS3SDKClient(t *testing.T) {
+// 	func TestSomethingThatUsesS3SDKClient(t *testing.T) {
 //
-//         // make and configure a mocked s3client.S3SDKClient
-//         mockedS3SDKClient := &S3SDKClientMock{
-//             CompleteMultipartUploadFunc: func(in1 *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error) {
-// 	               panic("mock out the CompleteMultipartUpload method")
-//             },
-//             CreateMultipartUploadFunc: func(in1 *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
-// 	               panic("mock out the CreateMultipartUpload method")
-//             },
-//             GetObjectFunc: func(in1 *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
-// 	               panic("mock out the GetObject method")
-//             },
-//             HeadBucketFunc: func(in1 *s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
-// 	               panic("mock out the HeadBucket method")
-//             },
-//             ListMultipartUploadsFunc: func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
-// 	               panic("mock out the ListMultipartUploads method")
-//             },
-//             ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
-// 	               panic("mock out the ListParts method")
-//             },
-//             UploadPartFunc: func(in1 *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
-// 	               panic("mock out the UploadPart method")
-//             },
-//         }
+// 		// make and configure a mocked s3client.S3SDKClient
+// 		mockedS3SDKClient := &S3SDKClientMock{
+// 			CompleteMultipartUploadFunc: func(completeMultipartUploadInput *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error) {
+// 				panic("mock out the CompleteMultipartUpload method")
+// 			},
+// 			CreateMultipartUploadFunc: func(createMultipartUploadInput *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
+// 				panic("mock out the CreateMultipartUpload method")
+// 			},
+// 			GetObjectFunc: func(getObjectInput *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
+// 				panic("mock out the GetObject method")
+// 			},
+// 			HeadBucketFunc: func(headBucketInput *s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
+// 				panic("mock out the HeadBucket method")
+// 			},
+// 			ListMultipartUploadsFunc: func(listMultipartUploadsInput *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+// 				panic("mock out the ListMultipartUploads method")
+// 			},
+// 			ListPartsFunc: func(listPartsInput *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+// 				panic("mock out the ListParts method")
+// 			},
+// 			UploadPartFunc: func(uploadPartInput *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
+// 				panic("mock out the UploadPart method")
+// 			},
+// 		}
 //
-//         // use mockedS3SDKClient in code that requires s3client.S3SDKClient
-//         // and then make assertions.
+// 		// use mockedS3SDKClient in code that requires s3client.S3SDKClient
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type S3SDKClientMock struct {
 	// CompleteMultipartUploadFunc mocks the CompleteMultipartUpload method.
-	CompleteMultipartUploadFunc func(in1 *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error)
+	CompleteMultipartUploadFunc func(completeMultipartUploadInput *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error)
 
 	// CreateMultipartUploadFunc mocks the CreateMultipartUpload method.
-	CreateMultipartUploadFunc func(in1 *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error)
+	CreateMultipartUploadFunc func(createMultipartUploadInput *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error)
 
 	// GetObjectFunc mocks the GetObject method.
-	GetObjectFunc func(in1 *s3.GetObjectInput) (*s3.GetObjectOutput, error)
+	GetObjectFunc func(getObjectInput *s3.GetObjectInput) (*s3.GetObjectOutput, error)
 
 	// HeadBucketFunc mocks the HeadBucket method.
-	HeadBucketFunc func(in1 *s3.HeadBucketInput) (*s3.HeadBucketOutput, error)
+	HeadBucketFunc func(headBucketInput *s3.HeadBucketInput) (*s3.HeadBucketOutput, error)
 
 	// ListMultipartUploadsFunc mocks the ListMultipartUploads method.
-	ListMultipartUploadsFunc func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error)
+	ListMultipartUploadsFunc func(listMultipartUploadsInput *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error)
 
 	// ListPartsFunc mocks the ListParts method.
-	ListPartsFunc func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error)
+	ListPartsFunc func(listPartsInput *s3.ListPartsInput) (*s3.ListPartsOutput, error)
 
 	// UploadPartFunc mocks the UploadPart method.
-	UploadPartFunc func(in1 *s3.UploadPartInput) (*s3.UploadPartOutput, error)
+	UploadPartFunc func(uploadPartInput *s3.UploadPartInput) (*s3.UploadPartOutput, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// CompleteMultipartUpload holds details about calls to the CompleteMultipartUpload method.
 		CompleteMultipartUpload []struct {
-			// In1 is the in1 argument value.
-			In1 *s3.CompleteMultipartUploadInput
+			// CompleteMultipartUploadInput is the completeMultipartUploadInput argument value.
+			CompleteMultipartUploadInput *s3.CompleteMultipartUploadInput
 		}
 		// CreateMultipartUpload holds details about calls to the CreateMultipartUpload method.
 		CreateMultipartUpload []struct {
-			// In1 is the in1 argument value.
-			In1 *s3.CreateMultipartUploadInput
+			// CreateMultipartUploadInput is the createMultipartUploadInput argument value.
+			CreateMultipartUploadInput *s3.CreateMultipartUploadInput
 		}
 		// GetObject holds details about calls to the GetObject method.
 		GetObject []struct {
-			// In1 is the in1 argument value.
-			In1 *s3.GetObjectInput
+			// GetObjectInput is the getObjectInput argument value.
+			GetObjectInput *s3.GetObjectInput
 		}
 		// HeadBucket holds details about calls to the HeadBucket method.
 		HeadBucket []struct {
-			// In1 is the in1 argument value.
-			In1 *s3.HeadBucketInput
+			// HeadBucketInput is the headBucketInput argument value.
+			HeadBucketInput *s3.HeadBucketInput
 		}
 		// ListMultipartUploads holds details about calls to the ListMultipartUploads method.
 		ListMultipartUploads []struct {
-			// In1 is the in1 argument value.
-			In1 *s3.ListMultipartUploadsInput
+			// ListMultipartUploadsInput is the listMultipartUploadsInput argument value.
+			ListMultipartUploadsInput *s3.ListMultipartUploadsInput
 		}
 		// ListParts holds details about calls to the ListParts method.
 		ListParts []struct {
-			// In1 is the in1 argument value.
-			In1 *s3.ListPartsInput
+			// ListPartsInput is the listPartsInput argument value.
+			ListPartsInput *s3.ListPartsInput
 		}
 		// UploadPart holds details about calls to the UploadPart method.
 		UploadPart []struct {
-			// In1 is the in1 argument value.
-			In1 *s3.UploadPartInput
+			// UploadPartInput is the uploadPartInput argument value.
+			UploadPartInput *s3.UploadPartInput
 		}
 	}
+	lockCompleteMultipartUpload sync.RWMutex
+	lockCreateMultipartUpload   sync.RWMutex
+	lockGetObject               sync.RWMutex
+	lockHeadBucket              sync.RWMutex
+	lockListMultipartUploads    sync.RWMutex
+	lockListParts               sync.RWMutex
+	lockUploadPart              sync.RWMutex
 }
 
 // CompleteMultipartUpload calls CompleteMultipartUploadFunc.
-func (mock *S3SDKClientMock) CompleteMultipartUpload(in1 *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error) {
+func (mock *S3SDKClientMock) CompleteMultipartUpload(completeMultipartUploadInput *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error) {
 	if mock.CompleteMultipartUploadFunc == nil {
 		panic("S3SDKClientMock.CompleteMultipartUploadFunc: method is nil but S3SDKClient.CompleteMultipartUpload was just called")
 	}
 	callInfo := struct {
-		In1 *s3.CompleteMultipartUploadInput
+		CompleteMultipartUploadInput *s3.CompleteMultipartUploadInput
 	}{
-		In1: in1,
+		CompleteMultipartUploadInput: completeMultipartUploadInput,
 	}
-	lockS3SDKClientMockCompleteMultipartUpload.Lock()
+	mock.lockCompleteMultipartUpload.Lock()
 	mock.calls.CompleteMultipartUpload = append(mock.calls.CompleteMultipartUpload, callInfo)
-	lockS3SDKClientMockCompleteMultipartUpload.Unlock()
-	return mock.CompleteMultipartUploadFunc(in1)
+	mock.lockCompleteMultipartUpload.Unlock()
+	return mock.CompleteMultipartUploadFunc(completeMultipartUploadInput)
 }
 
 // CompleteMultipartUploadCalls gets all the calls that were made to CompleteMultipartUpload.
 // Check the length with:
 //     len(mockedS3SDKClient.CompleteMultipartUploadCalls())
 func (mock *S3SDKClientMock) CompleteMultipartUploadCalls() []struct {
-	In1 *s3.CompleteMultipartUploadInput
+	CompleteMultipartUploadInput *s3.CompleteMultipartUploadInput
 } {
 	var calls []struct {
-		In1 *s3.CompleteMultipartUploadInput
+		CompleteMultipartUploadInput *s3.CompleteMultipartUploadInput
 	}
-	lockS3SDKClientMockCompleteMultipartUpload.RLock()
+	mock.lockCompleteMultipartUpload.RLock()
 	calls = mock.calls.CompleteMultipartUpload
-	lockS3SDKClientMockCompleteMultipartUpload.RUnlock()
+	mock.lockCompleteMultipartUpload.RUnlock()
 	return calls
 }
 
 // CreateMultipartUpload calls CreateMultipartUploadFunc.
-func (mock *S3SDKClientMock) CreateMultipartUpload(in1 *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
+func (mock *S3SDKClientMock) CreateMultipartUpload(createMultipartUploadInput *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
 	if mock.CreateMultipartUploadFunc == nil {
 		panic("S3SDKClientMock.CreateMultipartUploadFunc: method is nil but S3SDKClient.CreateMultipartUpload was just called")
 	}
 	callInfo := struct {
-		In1 *s3.CreateMultipartUploadInput
+		CreateMultipartUploadInput *s3.CreateMultipartUploadInput
 	}{
-		In1: in1,
+		CreateMultipartUploadInput: createMultipartUploadInput,
 	}
-	lockS3SDKClientMockCreateMultipartUpload.Lock()
+	mock.lockCreateMultipartUpload.Lock()
 	mock.calls.CreateMultipartUpload = append(mock.calls.CreateMultipartUpload, callInfo)
-	lockS3SDKClientMockCreateMultipartUpload.Unlock()
-	return mock.CreateMultipartUploadFunc(in1)
+	mock.lockCreateMultipartUpload.Unlock()
+	return mock.CreateMultipartUploadFunc(createMultipartUploadInput)
 }
 
 // CreateMultipartUploadCalls gets all the calls that were made to CreateMultipartUpload.
 // Check the length with:
 //     len(mockedS3SDKClient.CreateMultipartUploadCalls())
 func (mock *S3SDKClientMock) CreateMultipartUploadCalls() []struct {
-	In1 *s3.CreateMultipartUploadInput
+	CreateMultipartUploadInput *s3.CreateMultipartUploadInput
 } {
 	var calls []struct {
-		In1 *s3.CreateMultipartUploadInput
+		CreateMultipartUploadInput *s3.CreateMultipartUploadInput
 	}
-	lockS3SDKClientMockCreateMultipartUpload.RLock()
+	mock.lockCreateMultipartUpload.RLock()
 	calls = mock.calls.CreateMultipartUpload
-	lockS3SDKClientMockCreateMultipartUpload.RUnlock()
+	mock.lockCreateMultipartUpload.RUnlock()
 	return calls
 }
 
 // GetObject calls GetObjectFunc.
-func (mock *S3SDKClientMock) GetObject(in1 *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
+func (mock *S3SDKClientMock) GetObject(getObjectInput *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
 	if mock.GetObjectFunc == nil {
 		panic("S3SDKClientMock.GetObjectFunc: method is nil but S3SDKClient.GetObject was just called")
 	}
 	callInfo := struct {
-		In1 *s3.GetObjectInput
+		GetObjectInput *s3.GetObjectInput
 	}{
-		In1: in1,
+		GetObjectInput: getObjectInput,
 	}
-	lockS3SDKClientMockGetObject.Lock()
+	mock.lockGetObject.Lock()
 	mock.calls.GetObject = append(mock.calls.GetObject, callInfo)
-	lockS3SDKClientMockGetObject.Unlock()
-	return mock.GetObjectFunc(in1)
+	mock.lockGetObject.Unlock()
+	return mock.GetObjectFunc(getObjectInput)
 }
 
 // GetObjectCalls gets all the calls that were made to GetObject.
 // Check the length with:
 //     len(mockedS3SDKClient.GetObjectCalls())
 func (mock *S3SDKClientMock) GetObjectCalls() []struct {
-	In1 *s3.GetObjectInput
+	GetObjectInput *s3.GetObjectInput
 } {
 	var calls []struct {
-		In1 *s3.GetObjectInput
+		GetObjectInput *s3.GetObjectInput
 	}
-	lockS3SDKClientMockGetObject.RLock()
+	mock.lockGetObject.RLock()
 	calls = mock.calls.GetObject
-	lockS3SDKClientMockGetObject.RUnlock()
+	mock.lockGetObject.RUnlock()
 	return calls
 }
 
 // HeadBucket calls HeadBucketFunc.
-func (mock *S3SDKClientMock) HeadBucket(in1 *s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
+func (mock *S3SDKClientMock) HeadBucket(headBucketInput *s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
 	if mock.HeadBucketFunc == nil {
 		panic("S3SDKClientMock.HeadBucketFunc: method is nil but S3SDKClient.HeadBucket was just called")
 	}
 	callInfo := struct {
-		In1 *s3.HeadBucketInput
+		HeadBucketInput *s3.HeadBucketInput
 	}{
-		In1: in1,
+		HeadBucketInput: headBucketInput,
 	}
-	lockS3SDKClientMockHeadBucket.Lock()
+	mock.lockHeadBucket.Lock()
 	mock.calls.HeadBucket = append(mock.calls.HeadBucket, callInfo)
-	lockS3SDKClientMockHeadBucket.Unlock()
-	return mock.HeadBucketFunc(in1)
+	mock.lockHeadBucket.Unlock()
+	return mock.HeadBucketFunc(headBucketInput)
 }
 
 // HeadBucketCalls gets all the calls that were made to HeadBucket.
 // Check the length with:
 //     len(mockedS3SDKClient.HeadBucketCalls())
 func (mock *S3SDKClientMock) HeadBucketCalls() []struct {
-	In1 *s3.HeadBucketInput
+	HeadBucketInput *s3.HeadBucketInput
 } {
 	var calls []struct {
-		In1 *s3.HeadBucketInput
+		HeadBucketInput *s3.HeadBucketInput
 	}
-	lockS3SDKClientMockHeadBucket.RLock()
+	mock.lockHeadBucket.RLock()
 	calls = mock.calls.HeadBucket
-	lockS3SDKClientMockHeadBucket.RUnlock()
+	mock.lockHeadBucket.RUnlock()
 	return calls
 }
 
 // ListMultipartUploads calls ListMultipartUploadsFunc.
-func (mock *S3SDKClientMock) ListMultipartUploads(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+func (mock *S3SDKClientMock) ListMultipartUploads(listMultipartUploadsInput *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
 	if mock.ListMultipartUploadsFunc == nil {
 		panic("S3SDKClientMock.ListMultipartUploadsFunc: method is nil but S3SDKClient.ListMultipartUploads was just called")
 	}
 	callInfo := struct {
-		In1 *s3.ListMultipartUploadsInput
+		ListMultipartUploadsInput *s3.ListMultipartUploadsInput
 	}{
-		In1: in1,
+		ListMultipartUploadsInput: listMultipartUploadsInput,
 	}
-	lockS3SDKClientMockListMultipartUploads.Lock()
+	mock.lockListMultipartUploads.Lock()
 	mock.calls.ListMultipartUploads = append(mock.calls.ListMultipartUploads, callInfo)
-	lockS3SDKClientMockListMultipartUploads.Unlock()
-	return mock.ListMultipartUploadsFunc(in1)
+	mock.lockListMultipartUploads.Unlock()
+	return mock.ListMultipartUploadsFunc(listMultipartUploadsInput)
 }
 
 // ListMultipartUploadsCalls gets all the calls that were made to ListMultipartUploads.
 // Check the length with:
 //     len(mockedS3SDKClient.ListMultipartUploadsCalls())
 func (mock *S3SDKClientMock) ListMultipartUploadsCalls() []struct {
-	In1 *s3.ListMultipartUploadsInput
+	ListMultipartUploadsInput *s3.ListMultipartUploadsInput
 } {
 	var calls []struct {
-		In1 *s3.ListMultipartUploadsInput
+		ListMultipartUploadsInput *s3.ListMultipartUploadsInput
 	}
-	lockS3SDKClientMockListMultipartUploads.RLock()
+	mock.lockListMultipartUploads.RLock()
 	calls = mock.calls.ListMultipartUploads
-	lockS3SDKClientMockListMultipartUploads.RUnlock()
+	mock.lockListMultipartUploads.RUnlock()
 	return calls
 }
 
 // ListParts calls ListPartsFunc.
-func (mock *S3SDKClientMock) ListParts(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+func (mock *S3SDKClientMock) ListParts(listPartsInput *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
 	if mock.ListPartsFunc == nil {
 		panic("S3SDKClientMock.ListPartsFunc: method is nil but S3SDKClient.ListParts was just called")
 	}
 	callInfo := struct {
-		In1 *s3.ListPartsInput
+		ListPartsInput *s3.ListPartsInput
 	}{
-		In1: in1,
+		ListPartsInput: listPartsInput,
 	}
-	lockS3SDKClientMockListParts.Lock()
+	mock.lockListParts.Lock()
 	mock.calls.ListParts = append(mock.calls.ListParts, callInfo)
-	lockS3SDKClientMockListParts.Unlock()
-	return mock.ListPartsFunc(in1)
+	mock.lockListParts.Unlock()
+	return mock.ListPartsFunc(listPartsInput)
 }
 
 // ListPartsCalls gets all the calls that were made to ListParts.
 // Check the length with:
 //     len(mockedS3SDKClient.ListPartsCalls())
 func (mock *S3SDKClientMock) ListPartsCalls() []struct {
-	In1 *s3.ListPartsInput
+	ListPartsInput *s3.ListPartsInput
 } {
 	var calls []struct {
-		In1 *s3.ListPartsInput
+		ListPartsInput *s3.ListPartsInput
 	}
-	lockS3SDKClientMockListParts.RLock()
+	mock.lockListParts.RLock()
 	calls = mock.calls.ListParts
-	lockS3SDKClientMockListParts.RUnlock()
+	mock.lockListParts.RUnlock()
 	return calls
 }
 
 // UploadPart calls UploadPartFunc.
-func (mock *S3SDKClientMock) UploadPart(in1 *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
+func (mock *S3SDKClientMock) UploadPart(uploadPartInput *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
 	if mock.UploadPartFunc == nil {
 		panic("S3SDKClientMock.UploadPartFunc: method is nil but S3SDKClient.UploadPart was just called")
 	}
 	callInfo := struct {
-		In1 *s3.UploadPartInput
+		UploadPartInput *s3.UploadPartInput
 	}{
-		In1: in1,
+		UploadPartInput: uploadPartInput,
 	}
-	lockS3SDKClientMockUploadPart.Lock()
+	mock.lockUploadPart.Lock()
 	mock.calls.UploadPart = append(mock.calls.UploadPart, callInfo)
-	lockS3SDKClientMockUploadPart.Unlock()
-	return mock.UploadPartFunc(in1)
+	mock.lockUploadPart.Unlock()
+	return mock.UploadPartFunc(uploadPartInput)
 }
 
 // UploadPartCalls gets all the calls that were made to UploadPart.
 // Check the length with:
 //     len(mockedS3SDKClient.UploadPartCalls())
 func (mock *S3SDKClientMock) UploadPartCalls() []struct {
-	In1 *s3.UploadPartInput
+	UploadPartInput *s3.UploadPartInput
 } {
 	var calls []struct {
-		In1 *s3.UploadPartInput
+		UploadPartInput *s3.UploadPartInput
 	}
-	lockS3SDKClientMockUploadPart.RLock()
+	mock.lockUploadPart.RLock()
 	calls = mock.calls.UploadPart
-	lockS3SDKClientMockUploadPart.RUnlock()
+	mock.lockUploadPart.RUnlock()
 	return calls
 }

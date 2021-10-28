@@ -1,6 +1,7 @@
 package s3client
 
 import (
+	"context"
 	"errors"
 
 	"github.com/ONSdigital/log.go/v2/log"
@@ -115,4 +116,25 @@ func (u *Uploader) validateRequestBucket(input *s3manager.UploadInput) error {
 			})
 	}
 	return nil
+}
+
+// Upload uploads a file to S3 using the AWS s3Manager with context, which will automatically split up large objects and upload them concurrently
+func (u *Uploader) UploadWithContext(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+	logData := log.Data{
+		"bucket_name": u.bucketName,
+	}
+
+	// param validation
+	if input == nil {
+		return nil, NewError(errors.New("nil input provided to UploadWithPSK"), logData)
+	}
+	logData["s3_key"] = input.Key // key is the s3 filename with path (it's not a cryptographic key)
+
+	// Check that the requested Bucket is the correct one, or assign it if nil
+	if err := u.validateRequestBucket(input); err != nil {
+		return nil, err
+	}
+
+	// Perform the Upload using the AWS SDK Uploader
+	return u.sdkUploader.UploadWithContext(ctx, input, options...)
 }
