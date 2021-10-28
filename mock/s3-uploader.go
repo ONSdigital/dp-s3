@@ -4,13 +4,10 @@
 package mock
 
 import (
+	"context"
 	"github.com/ONSdigital/dp-s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"sync"
-)
-
-var (
-	lockS3SDKUploaderMockUpload sync.RWMutex
 )
 
 // Ensure, that S3SDKUploaderMock does implement s3client.S3SDKUploader.
@@ -19,66 +16,122 @@ var _ s3client.S3SDKUploader = &S3SDKUploaderMock{}
 
 // S3SDKUploaderMock is a mock implementation of s3client.S3SDKUploader.
 //
-//     func TestSomethingThatUsesS3SDKUploader(t *testing.T) {
+// 	func TestSomethingThatUsesS3SDKUploader(t *testing.T) {
 //
-//         // make and configure a mocked s3client.S3SDKUploader
-//         mockedS3SDKUploader := &S3SDKUploaderMock{
-//             UploadFunc: func(in1 *s3manager.UploadInput, in2 ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
-// 	               panic("mock out the Upload method")
-//             },
-//         }
+// 		// make and configure a mocked s3client.S3SDKUploader
+// 		mockedS3SDKUploader := &S3SDKUploaderMock{
+// 			UploadFunc: func(uploadInput *s3manager.UploadInput, fns ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+// 				panic("mock out the Upload method")
+// 			},
+// 			UploadWithContextFunc: func(contextMoqParam context.Context, uploadInput *s3manager.UploadInput, fns ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+// 				panic("mock out the UploadWithContext method")
+// 			},
+// 		}
 //
-//         // use mockedS3SDKUploader in code that requires s3client.S3SDKUploader
-//         // and then make assertions.
+// 		// use mockedS3SDKUploader in code that requires s3client.S3SDKUploader
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type S3SDKUploaderMock struct {
 	// UploadFunc mocks the Upload method.
-	UploadFunc func(in1 *s3manager.UploadInput, in2 ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
+	UploadFunc func(uploadInput *s3manager.UploadInput, fns ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
+
+	// UploadWithContextFunc mocks the UploadWithContext method.
+	UploadWithContextFunc func(contextMoqParam context.Context, uploadInput *s3manager.UploadInput, fns ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// Upload holds details about calls to the Upload method.
 		Upload []struct {
-			// In1 is the in1 argument value.
-			In1 *s3manager.UploadInput
-			// In2 is the in2 argument value.
-			In2 []func(*s3manager.Uploader)
+			// UploadInput is the uploadInput argument value.
+			UploadInput *s3manager.UploadInput
+			// Fns is the fns argument value.
+			Fns []func(*s3manager.Uploader)
+		}
+		// UploadWithContext holds details about calls to the UploadWithContext method.
+		UploadWithContext []struct {
+			// ContextMoqParam is the contextMoqParam argument value.
+			ContextMoqParam context.Context
+			// UploadInput is the uploadInput argument value.
+			UploadInput *s3manager.UploadInput
+			// Fns is the fns argument value.
+			Fns []func(*s3manager.Uploader)
 		}
 	}
+	lockUpload            sync.RWMutex
+	lockUploadWithContext sync.RWMutex
 }
 
 // Upload calls UploadFunc.
-func (mock *S3SDKUploaderMock) Upload(in1 *s3manager.UploadInput, in2 ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+func (mock *S3SDKUploaderMock) Upload(uploadInput *s3manager.UploadInput, fns ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
 	if mock.UploadFunc == nil {
 		panic("S3SDKUploaderMock.UploadFunc: method is nil but S3SDKUploader.Upload was just called")
 	}
 	callInfo := struct {
-		In1 *s3manager.UploadInput
-		In2 []func(*s3manager.Uploader)
+		UploadInput *s3manager.UploadInput
+		Fns         []func(*s3manager.Uploader)
 	}{
-		In1: in1,
-		In2: in2,
+		UploadInput: uploadInput,
+		Fns:         fns,
 	}
-	lockS3SDKUploaderMockUpload.Lock()
+	mock.lockUpload.Lock()
 	mock.calls.Upload = append(mock.calls.Upload, callInfo)
-	lockS3SDKUploaderMockUpload.Unlock()
-	return mock.UploadFunc(in1, in2...)
+	mock.lockUpload.Unlock()
+	return mock.UploadFunc(uploadInput, fns...)
 }
 
 // UploadCalls gets all the calls that were made to Upload.
 // Check the length with:
 //     len(mockedS3SDKUploader.UploadCalls())
 func (mock *S3SDKUploaderMock) UploadCalls() []struct {
-	In1 *s3manager.UploadInput
-	In2 []func(*s3manager.Uploader)
+	UploadInput *s3manager.UploadInput
+	Fns         []func(*s3manager.Uploader)
 } {
 	var calls []struct {
-		In1 *s3manager.UploadInput
-		In2 []func(*s3manager.Uploader)
+		UploadInput *s3manager.UploadInput
+		Fns         []func(*s3manager.Uploader)
 	}
-	lockS3SDKUploaderMockUpload.RLock()
+	mock.lockUpload.RLock()
 	calls = mock.calls.Upload
-	lockS3SDKUploaderMockUpload.RUnlock()
+	mock.lockUpload.RUnlock()
+	return calls
+}
+
+// UploadWithContext calls UploadWithContextFunc.
+func (mock *S3SDKUploaderMock) UploadWithContext(contextMoqParam context.Context, uploadInput *s3manager.UploadInput, fns ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+	if mock.UploadWithContextFunc == nil {
+		panic("S3SDKUploaderMock.UploadWithContextFunc: method is nil but S3SDKUploader.UploadWithContext was just called")
+	}
+	callInfo := struct {
+		ContextMoqParam context.Context
+		UploadInput     *s3manager.UploadInput
+		Fns             []func(*s3manager.Uploader)
+	}{
+		ContextMoqParam: contextMoqParam,
+		UploadInput:     uploadInput,
+		Fns:             fns,
+	}
+	mock.lockUploadWithContext.Lock()
+	mock.calls.UploadWithContext = append(mock.calls.UploadWithContext, callInfo)
+	mock.lockUploadWithContext.Unlock()
+	return mock.UploadWithContextFunc(contextMoqParam, uploadInput, fns...)
+}
+
+// UploadWithContextCalls gets all the calls that were made to UploadWithContext.
+// Check the length with:
+//     len(mockedS3SDKUploader.UploadWithContextCalls())
+func (mock *S3SDKUploaderMock) UploadWithContextCalls() []struct {
+	ContextMoqParam context.Context
+	UploadInput     *s3manager.UploadInput
+	Fns             []func(*s3manager.Uploader)
+} {
+	var calls []struct {
+		ContextMoqParam context.Context
+		UploadInput     *s3manager.UploadInput
+		Fns             []func(*s3manager.Uploader)
+	}
+	mock.lockUploadWithContext.RLock()
+	calls = mock.calls.UploadWithContext
+	mock.lockUploadWithContext.RUnlock()
 	return calls
 }
