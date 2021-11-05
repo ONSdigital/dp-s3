@@ -14,29 +14,30 @@ import (
 
 // S3SDKClient represents the sdk client with methods required by dp-s3 client
 type S3SDKClient interface {
-	ListMultipartUploads(*s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error)
-	ListParts(*s3.ListPartsInput) (*s3.ListPartsOutput, error)
-	CompleteMultipartUpload(*s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error)
-	CreateMultipartUpload(*s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error)
-	UploadPart(*s3.UploadPartInput) (*s3.UploadPartOutput, error)
-	HeadBucket(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error)
-	GetObject(*s3.GetObjectInput) (*s3.GetObjectOutput, error)
+	ListMultipartUploads(in *s3.ListMultipartUploadsInput) (out *s3.ListMultipartUploadsOutput, err error)
+	ListParts(in *s3.ListPartsInput) (out *s3.ListPartsOutput, err error)
+	CompleteMultipartUpload(in *s3.CompleteMultipartUploadInput) (out *s3.CompleteMultipartUploadOutput, err error)
+	CreateMultipartUpload(in *s3.CreateMultipartUploadInput) (out *s3.CreateMultipartUploadOutput, err error)
+	UploadPart(in *s3.UploadPartInput) (out *s3.UploadPartOutput, err error)
+	HeadBucket(in *s3.HeadBucketInput) (out *s3.HeadBucketOutput, err error)
+	HeadObject(in *s3.HeadObjectInput) (out *s3.HeadObjectOutput, err error)
+	GetObject(in *s3.GetObjectInput) (out *s3.GetObjectOutput, err error)
 }
 
 // S3CryptoClient represents the cryptoclient with methods required to upload parts with encryption
 type S3CryptoClient interface {
-	UploadPartWithPSK(*s3.UploadPartInput, []byte) (*s3.UploadPartOutput, error)
-	GetObjectWithPSK(*s3.GetObjectInput, []byte) (*s3.GetObjectOutput, error)
-	PutObjectWithPSK(*s3.PutObjectInput, []byte) (*s3.PutObjectOutput, error)
+	UploadPartWithPSK(in *s3.UploadPartInput, psk []byte) (out *s3.UploadPartOutput, err error)
+	GetObjectWithPSK(in *s3.GetObjectInput, psk []byte) (out *s3.GetObjectOutput, err error)
+	PutObjectWithPSK(in *s3.PutObjectInput, psk []byte) (out *s3.PutObjectOutput, err error)
 }
 
 // S3SDKUploader represents the sdk uploader with methods required by dp-s3 client
 type S3SDKUploader interface {
-	Upload(*s3manager.UploadInput, ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
-	UploadWithContext(context.Context, *s3manager.UploadInput, ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
+	Upload(in *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (out *s3manager.UploadOutput, err error)
+	UploadWithContext(ctx context.Context, in *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (out *s3manager.UploadOutput, err error)
 }
 
 // S3CryptoUploader represents the s3crypto Uploader with methods required to upload parts with encryption
 type S3CryptoUploader interface {
-	UploadWithPSK(*s3manager.UploadInput, []byte) (*s3manager.UploadOutput, error)
+	UploadWithPSK(in *s3manager.UploadInput, psk []byte) (out *s3manager.UploadOutput, err error)
 }

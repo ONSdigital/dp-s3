@@ -390,10 +390,27 @@ func (cli *S3) GetWithPSK(key string, psk []byte) (io.ReadCloser, *int64, error)
 	return result.Body, result.ContentLength, nil
 }
 
+// Head returns a HeadObjectOutput containing an object metadata obtained from ah HTTP HEAD call
+func (cli *S3) Head(key string) (*s3.HeadObjectOutput, error) {
+	result, err := cli.sdkClient.HeadObject(&s3.HeadObjectInput{
+		Bucket: &cli.bucketName,
+		Key:    &key,
+	})
+	if err != nil {
+		return nil, NewError(
+			fmt.Errorf("error trying to obtain s3 object metadata with HeadObject call: %w", err),
+			log.Data{
+				"bucket_name": cli.bucketName,
+				"s3_key":      key, // key is the s3 filename with path (it's not a cryptographic key)
+			},
+		)
+	}
+	return result, nil
+}
+
 // PutWithPSK uploads the provided contents to the key in the bucket configured for this client, using the provided PSK.
 // The 'key' parameter refers to the path for the file under the bucket.
 func (cli *S3) PutWithPSK(key *string, reader *bytes.Reader, psk []byte) error {
-
 	input := &s3.PutObjectInput{
 		Body:   reader,
 		Key:    key,

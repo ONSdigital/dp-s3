@@ -45,7 +45,7 @@ func TestGet(t *testing.T) {
 			b := readBytes(ret)
 			So(b, ShouldResemble, payload)
 			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 1)
-			So(sdkMock.GetObjectCalls()[0].GetObjectInput, ShouldResemble, &s3.GetObjectInput{
+			So(sdkMock.GetObjectCalls()[0].In, ShouldResemble, &s3.GetObjectInput{
 				Bucket: &bucket,
 				Key:    &objKey,
 			})
@@ -59,7 +59,7 @@ func TestGet(t *testing.T) {
 			b := readBytes(ret)
 			So(b, ShouldResemble, payload)
 			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 1)
-			So(sdkMock.GetObjectCalls()[0].GetObjectInput, ShouldResemble, &s3.GetObjectInput{
+			So(sdkMock.GetObjectCalls()[0].In, ShouldResemble, &s3.GetObjectInput{
 				Bucket: &bucket,
 				Key:    &objKey,
 			})
@@ -73,7 +73,7 @@ func TestGet(t *testing.T) {
 			b := readBytes(ret)
 			So(b, ShouldResemble, payload)
 			So(len(sdkMock.GetObjectCalls()), ShouldEqual, 1)
-			So(sdkMock.GetObjectCalls()[0].GetObjectInput, ShouldResemble, &s3.GetObjectInput{
+			So(sdkMock.GetObjectCalls()[0].In, ShouldResemble, &s3.GetObjectInput{
 				Bucket: &bucket,
 				Key:    &objKey,
 			})
@@ -149,8 +149,8 @@ func TestGetWithPSK(t *testing.T) {
 			b := readBytes(ret)
 			So(b, ShouldResemble, payload)
 			So(len(cryptoMock.GetObjectWithPSKCalls()), ShouldEqual, 1)
-			So(cryptoMock.GetObjectWithPSKCalls()[0].Bytes, ShouldResemble, psk)
-			So(cryptoMock.GetObjectWithPSKCalls()[0].GetObjectInput, ShouldResemble, &s3.GetObjectInput{
+			So(cryptoMock.GetObjectWithPSKCalls()[0].Psk, ShouldResemble, psk)
+			So(cryptoMock.GetObjectWithPSKCalls()[0].In, ShouldResemble, &s3.GetObjectInput{
 				Bucket: &bucket,
 				Key:    &objKey,
 			})
@@ -164,11 +164,56 @@ func TestGetWithPSK(t *testing.T) {
 			b := readBytes(ret)
 			So(b, ShouldResemble, payload)
 			So(len(cryptoMock.GetObjectWithPSKCalls()), ShouldEqual, 1)
-			So(cryptoMock.GetObjectWithPSKCalls()[0].Bytes, ShouldResemble, psk)
-			So(cryptoMock.GetObjectWithPSKCalls()[0].GetObjectInput, ShouldResemble, &s3.GetObjectInput{
+			So(cryptoMock.GetObjectWithPSKCalls()[0].Psk, ShouldResemble, psk)
+			So(cryptoMock.GetObjectWithPSKCalls()[0].In, ShouldResemble, &s3.GetObjectInput{
 				Bucket: &bucket,
 				Key:    &objKey,
 			})
+		})
+	})
+}
+
+func TestHead(t *testing.T) {
+	bucket := "myBucket"
+	region := "eu-north-1"
+	contentLen := int64(123)
+	objKey := "my/object/key"
+
+	Convey("Given an S3 client that returns a valid HeadObject response", t, func() {
+		sdkMock := &mock.S3SDKClientMock{
+			HeadObjectFunc: func(in *s3.HeadObjectInput) (*s3.HeadObjectOutput, error) {
+				return &s3.HeadObjectOutput{
+					ContentLength: &contentLen,
+				}, nil
+			},
+		}
+		s3Cli := s3client.InstantiateClient(sdkMock, nil, bucket, region, nil)
+
+		Convey("Head returns the expected output returned by the sdk client without error", func() {
+			out, err := s3Cli.Head(objKey)
+			So(err, ShouldBeNil)
+			So(*out.ContentLength, ShouldEqual, contentLen)
+		})
+	})
+
+	Convey("Given an S3 client that returns an error on a HeadObject request", t, func() {
+		errHead := errors.New("headObject error")
+		sdkMock := &mock.S3SDKClientMock{
+			HeadObjectFunc: func(in *s3.HeadObjectInput) (*s3.HeadObjectOutput, error) {
+				return nil, errHead
+			},
+		}
+		s3Cli := s3client.InstantiateClient(sdkMock, nil, bucket, region, nil)
+
+		Convey("Head returns the expected error", func() {
+			_, err := s3Cli.Head(objKey)
+			So(err, ShouldResemble, s3client.NewError(
+				fmt.Errorf("error trying to obtain s3 object metadata with HeadObject call: %w", errHead),
+				log.Data{
+					"bucket_name": bucket,
+					"s3_key":      objKey,
+				},
+			))
 		})
 	})
 }
@@ -197,12 +242,12 @@ func TestPutWithPSK(t *testing.T) {
 			err := s3Cli.PutWithPSK(&objKey, payloadReader, psk)
 			So(err, ShouldBeNil)
 			So(len(cryptoMock.PutObjectWithPSKCalls()), ShouldEqual, 1)
-			So(cryptoMock.PutObjectWithPSKCalls()[0].PutObjectInput, ShouldResemble, &s3.PutObjectInput{
+			So(cryptoMock.PutObjectWithPSKCalls()[0].In, ShouldResemble, &s3.PutObjectInput{
 				Bucket: &bucket,
 				Key:    &objKey,
 				Body:   payloadReader,
 			})
-			So(cryptoMock.PutObjectWithPSKCalls()[0].Bytes, ShouldResemble, psk)
+			So(cryptoMock.PutObjectWithPSKCalls()[0].Psk, ShouldResemble, psk)
 		})
 	})
 }
@@ -241,7 +286,7 @@ func TestUploadPart(t *testing.T) {
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, fmt.Errorf("error fetching multipart list: %w", listMultipartUploadsErr).Error())
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
-			So(*sdkMock.ListMultipartUploadsCalls()[0].ListMultipartUploadsInput.Bucket, ShouldResemble, ExistingBucket)
+			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, ExistingBucket)
 		})
 
 		Convey("If the upload S3 object key can be found in the list of multipart upload, Upload will use it", func() {
@@ -272,12 +317,12 @@ func TestUploadPart(t *testing.T) {
 			// Validate
 			So(err, ShouldBeNil)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
-			So(*sdkMock.ListMultipartUploadsCalls()[0].ListMultipartUploadsInput.Bucket, ShouldResemble, bucket)
+			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
 			So(len(sdkMock.UploadPartCalls()), ShouldEqual, 1)
-			So(*sdkMock.UploadPartCalls()[0].UploadPartInput.UploadId, ShouldEqual, testUploadId)
-			So(*sdkMock.UploadPartCalls()[0].UploadPartInput.Bucket, ShouldEqual, bucket)
-			So(*sdkMock.UploadPartCalls()[0].UploadPartInput.Key, ShouldEqual, testKey)
+			So(*sdkMock.UploadPartCalls()[0].In.UploadId, ShouldEqual, testUploadId)
+			So(*sdkMock.UploadPartCalls()[0].In.Bucket, ShouldEqual, bucket)
+			So(*sdkMock.UploadPartCalls()[0].In.Key, ShouldEqual, testKey)
 		})
 
 		Convey("If the upload S3 object key cannot be found in the list of multipart uploads, Upload will create a new one, "+
@@ -315,12 +360,12 @@ func TestUploadPart(t *testing.T) {
 			// Validate
 			So(err, ShouldBeNil)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
-			So(*sdkMock.ListMultipartUploadsCalls()[0].ListMultipartUploadsInput.Bucket, ShouldResemble, bucket)
+			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.CreateMultipartUploadCalls()), ShouldEqual, 1)
 			So(len(sdkMock.UploadPartCalls()), ShouldEqual, 1)
-			So(*sdkMock.UploadPartCalls()[0].UploadPartInput.UploadId, ShouldEqual, testUploadId)
-			So(*sdkMock.UploadPartCalls()[0].UploadPartInput.Bucket, ShouldEqual, bucket)
-			So(*sdkMock.UploadPartCalls()[0].UploadPartInput.Key, ShouldEqual, testKey)
+			So(*sdkMock.UploadPartCalls()[0].In.UploadId, ShouldEqual, testUploadId)
+			So(*sdkMock.UploadPartCalls()[0].In.Bucket, ShouldEqual, bucket)
+			So(*sdkMock.UploadPartCalls()[0].In.Key, ShouldEqual, testKey)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
 		})
 
@@ -359,12 +404,12 @@ func TestUploadPart(t *testing.T) {
 			// Validate
 			So(err, ShouldBeNil)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
-			So(*sdkMock.ListMultipartUploadsCalls()[0].ListMultipartUploadsInput.Bucket, ShouldResemble, bucket)
+			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.CreateMultipartUploadCalls()), ShouldEqual, 1)
 			So(len(sdkMock.UploadPartCalls()), ShouldEqual, 1)
-			So(*sdkMock.UploadPartCalls()[0].UploadPartInput.UploadId, ShouldEqual, testUploadId)
-			So(*sdkMock.UploadPartCalls()[0].UploadPartInput.Bucket, ShouldEqual, bucket)
-			So(*sdkMock.UploadPartCalls()[0].UploadPartInput.Key, ShouldEqual, testKey)
+			So(*sdkMock.UploadPartCalls()[0].In.UploadId, ShouldEqual, testUploadId)
+			So(*sdkMock.UploadPartCalls()[0].In.Bucket, ShouldEqual, bucket)
+			So(*sdkMock.UploadPartCalls()[0].In.Key, ShouldEqual, testKey)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
 			So(len(sdkMock.CompleteMultipartUploadCalls()), ShouldEqual, 1)
 		})
@@ -405,7 +450,7 @@ func TestUploadPart(t *testing.T) {
 			// Validate
 			So(err, ShouldBeNil)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
-			So(*sdkMock.ListMultipartUploadsCalls()[0].ListMultipartUploadsInput.Bucket, ShouldResemble, bucket)
+			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.CreateMultipartUploadCalls()), ShouldEqual, 1)
 			So(len(cryptoMock.UploadPartWithPSKCalls()), ShouldEqual, 1)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
@@ -442,7 +487,7 @@ func TestCheckUpload(t *testing.T) {
 			// Validate
 			So(ok, ShouldBeFalse)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
-			So(*sdkMock.ListMultipartUploadsCalls()[0].ListMultipartUploadsInput.Bucket, ShouldResemble, ExistingBucket)
+			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, ExistingBucket)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, fmt.Errorf("error fetching multipart upload list: %w", listMultipartUploadsErr).Error())
 		})
@@ -469,7 +514,7 @@ func TestCheckUpload(t *testing.T) {
 			// Validate
 			So(ok, ShouldBeFalse)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
-			So(*sdkMock.ListMultipartUploadsCalls()[0].ListMultipartUploadsInput.Bucket, ShouldResemble, bucket)
+			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, "s3 key not uploaded")
 		})
@@ -504,7 +549,7 @@ func TestCheckUpload(t *testing.T) {
 			// Validate
 			So(ok, ShouldBeFalse)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
-			So(*sdkMock.ListMultipartUploadsCalls()[0].ListMultipartUploadsInput.Bucket, ShouldResemble, bucket)
+			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, fmt.Errorf("chunk number verification error: %w", skdListPartsErr).Error())
@@ -539,11 +584,11 @@ func TestCheckUpload(t *testing.T) {
 			So(ok, ShouldBeTrue)
 			So(err, ShouldBeNil)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
-			So(*sdkMock.ListMultipartUploadsCalls()[0].ListMultipartUploadsInput.Bucket, ShouldResemble, bucket)
+			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
-			So(*sdkMock.ListPartsCalls()[0].ListPartsInput.Key, ShouldEqual, expectedKey)
-			So(*sdkMock.ListPartsCalls()[0].ListPartsInput.Bucket, ShouldEqual, bucket)
-			So(*sdkMock.ListPartsCalls()[0].ListPartsInput.UploadId, ShouldEqual, expectedUploadID)
+			So(*sdkMock.ListPartsCalls()[0].In.Key, ShouldEqual, expectedKey)
+			So(*sdkMock.ListPartsCalls()[0].In.Bucket, ShouldEqual, bucket)
+			So(*sdkMock.ListPartsCalls()[0].In.UploadId, ShouldEqual, expectedUploadID)
 		})
 
 		Convey("Provided chunk not being found in the list of parts results in ErrChunkNumberNotFound being returned", func() {
@@ -576,11 +621,11 @@ func TestCheckUpload(t *testing.T) {
 			So(err, ShouldNotBeNil)
 			So(err.Error(), ShouldResemble, "chunk number not found")
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
-			So(*sdkMock.ListMultipartUploadsCalls()[0].ListMultipartUploadsInput.Bucket, ShouldResemble, bucket)
+			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
-			So(*sdkMock.ListPartsCalls()[0].ListPartsInput.Key, ShouldEqual, expectedKey)
-			So(*sdkMock.ListPartsCalls()[0].ListPartsInput.Bucket, ShouldEqual, bucket)
-			So(*sdkMock.ListPartsCalls()[0].ListPartsInput.UploadId, ShouldEqual, expectedUploadID)
+			So(*sdkMock.ListPartsCalls()[0].In.Key, ShouldEqual, expectedKey)
+			So(*sdkMock.ListPartsCalls()[0].In.Bucket, ShouldEqual, bucket)
+			So(*sdkMock.ListPartsCalls()[0].In.UploadId, ShouldEqual, expectedUploadID)
 		})
 
 		Convey("Provided chunk being successfully uploaded as part of a completed multipart upload results in the function completing the upload and returning true", func() {
@@ -615,11 +660,11 @@ func TestCheckUpload(t *testing.T) {
 			So(ok, ShouldBeTrue)
 			So(err, ShouldBeNil)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
-			So(*sdkMock.ListMultipartUploadsCalls()[0].ListMultipartUploadsInput.Bucket, ShouldResemble, bucket)
+			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
-			So(*sdkMock.ListPartsCalls()[0].ListPartsInput.Key, ShouldEqual, expectedKey)
-			So(*sdkMock.ListPartsCalls()[0].ListPartsInput.Bucket, ShouldEqual, bucket)
-			So(*sdkMock.ListPartsCalls()[0].ListPartsInput.UploadId, ShouldEqual, expectedUploadID)
+			So(*sdkMock.ListPartsCalls()[0].In.Key, ShouldEqual, expectedKey)
+			So(*sdkMock.ListPartsCalls()[0].In.Bucket, ShouldEqual, bucket)
+			So(*sdkMock.ListPartsCalls()[0].In.UploadId, ShouldEqual, expectedUploadID)
 			So(len(sdkMock.CompleteMultipartUploadCalls()), ShouldEqual, 1)
 		})
 

@@ -38,7 +38,7 @@ func TestUpload(t *testing.T) {
 			_, err := uploader.Upload(&s3manager.UploadInput{})
 			So(err, ShouldBeNil)
 			So(len(sdkUploaderMock.UploadCalls()), ShouldEqual, 1)
-			So(*sdkUploaderMock.UploadCalls()[0].UploadInput.Bucket, ShouldEqual, ExistingBucket)
+			So(*sdkUploaderMock.UploadCalls()[0].In.Bucket, ShouldEqual, ExistingBucket)
 		})
 
 		Convey("Upload with expected Bucket in parameter uploads the file to the configured S3 bucket using AWS SDK", func() {
@@ -48,7 +48,7 @@ func TestUpload(t *testing.T) {
 			})
 			So(err, ShouldBeNil)
 			So(len(sdkUploaderMock.UploadCalls()), ShouldEqual, 1)
-			So(*sdkUploaderMock.UploadCalls()[0].UploadInput.Bucket, ShouldEqual, ExistingBucket)
+			So(*sdkUploaderMock.UploadCalls()[0].In.Bucket, ShouldEqual, ExistingBucket)
 		})
 
 		Convey("Tying to upload a file to the wrong S3 bucket results in ErrUnexpectedBucket error", func() {
@@ -84,7 +84,7 @@ func TestUploadWithPSK(t *testing.T) {
 			_, err := uploader.UploadWithPSK(&s3manager.UploadInput{Key: &s3Key}, psk)
 			So(err, ShouldBeNil)
 			So(len(cryptoUploaderMock.UploadWithPSKCalls()), ShouldEqual, 1)
-			So(*cryptoUploaderMock.UploadWithPSKCalls()[0].UploadInput.Bucket, ShouldEqual, ExistingBucket)
+			So(*cryptoUploaderMock.UploadWithPSKCalls()[0].In.Bucket, ShouldEqual, ExistingBucket)
 		})
 
 		Convey("Upload with expected Bucket in parameter uploads the file to the configured S3 bucket using Crypto Uploader", func() {
@@ -95,7 +95,7 @@ func TestUploadWithPSK(t *testing.T) {
 			}, psk)
 			So(err, ShouldBeNil)
 			So(len(cryptoUploaderMock.UploadWithPSKCalls()), ShouldEqual, 1)
-			So(*cryptoUploaderMock.UploadWithPSKCalls()[0].UploadInput.Bucket, ShouldEqual, ExistingBucket)
+			So(*cryptoUploaderMock.UploadWithPSKCalls()[0].In.Bucket, ShouldEqual, ExistingBucket)
 		})
 
 		Convey("Tying to upload a file to the wrong S3 bucket results in ErrUnexpectedBucket error", func() {
@@ -130,7 +130,7 @@ func TestUploadWithContext(t *testing.T) {
 			_, err := uploader.UploadWithContext(context.Background(), &s3manager.UploadInput{})
 			So(err, ShouldBeNil)
 			So(len(sdkUploaderWithContextMock.UploadWithContextCalls()), ShouldEqual, 1)
-			So(*sdkUploaderWithContextMock.UploadWithContextCalls()[0].UploadInput.Bucket, ShouldEqual, ExistingBucket)
+			So(*sdkUploaderWithContextMock.UploadWithContextCalls()[0].In.Bucket, ShouldEqual, ExistingBucket)
 		})
 
 		Convey("Upload with expected Bucket in parameter uploads the file to the configured S3 bucket using AWS SDK", func() {
@@ -140,7 +140,7 @@ func TestUploadWithContext(t *testing.T) {
 			})
 			So(err, ShouldBeNil)
 			So(len(sdkUploaderWithContextMock.UploadWithContextCalls()), ShouldEqual, 1)
-			So(*sdkUploaderWithContextMock.UploadWithContextCalls()[0].UploadInput.Bucket, ShouldEqual, ExistingBucket)
+			So(*sdkUploaderWithContextMock.UploadWithContextCalls()[0].In.Bucket, ShouldEqual, ExistingBucket)
 		})
 
 		Convey("Tying to upload a file to the wrong S3 bucket results in ErrUnexpectedBucket error", func() {
