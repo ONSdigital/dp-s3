@@ -24,6 +24,7 @@ var (
 // If this is not the case, regenerate this file with moq.
 var _ s3client.S3SDKClient = &S3SDKClientMock{}
 
+// Example of how to instantiate a mock for testing - this code is automatically generated
 // S3SDKClientMock is a mock implementation of s3client.S3SDKClient.
 //
 //     func TestSomethingThatUsesS3SDKClient(t *testing.T) {

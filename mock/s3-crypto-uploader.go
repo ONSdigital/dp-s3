@@ -17,6 +17,7 @@ var (
 // If this is not the case, regenerate this file with moq.
 var _ s3client.S3CryptoUploader = &S3CryptoUploaderMock{}
 
+// Example of how to instantiate a mock for testing - this code is automatically generated
 // S3CryptoUploaderMock is a mock implementation of s3client.S3CryptoUploader.
 //
 //     func TestSomethingThatUsesS3CryptoUploader(t *testing.T) {
