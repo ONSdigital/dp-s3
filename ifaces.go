@@ -39,5 +39,5 @@ type S3SDKUploader interface {
 
 // S3CryptoUploader represents the s3crypto Uploader with methods required to upload parts with encryption
 type S3CryptoUploader interface {
-	UploadWithPSK(in *s3manager.UploadInput, psk []byte) (out *s3manager.UploadOutput, err error)
+	UploadWithPSK(ctx context.Context, in *s3manager.UploadInput, psk []byte) (out *s3manager.UploadOutput, err error)
 }

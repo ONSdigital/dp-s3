@@ -3,9 +3,10 @@ package s3client
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/ONSdigital/dp-s3/crypto"
 	"github.com/ONSdigital/log.go/v2/log"
-	"github.com/ONSdigital/s3crypto"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -39,7 +40,7 @@ func NewUploaderWithSession(bucketName string, s *session.Session) *Uploader {
 	sdkUploader := s3manager.NewUploader(s)
 
 	// Create crypto client, which allows user to provide a psk
-	cryptoUploader := s3crypto.NewUploader(s, &s3crypto.Config{HasUserDefinedPSK: true})
+	cryptoUploader := crypto.NewUploader(s, &crypto.Config{HasUserDefinedPSK: true})
 
 	return InstantiateUploader(s3Client, sdkUploader, cryptoUploader)
 }
@@ -54,87 +55,134 @@ func (u *Uploader) Session() *session.Session {
 	return u.session
 }
 
-// UploadWithPSK uploads a file to S3 using cryptoclient, which allows you to encrypt the file with a given psk
-func (u *Uploader) UploadWithPSK(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
-	logData := log.Data{
-		"bucket_name": u.bucketName,
-	}
-
-	// param validation
-	if input == nil {
-		return nil, NewError(errors.New("nil input provided to UploadWithPSK"), logData)
-	}
-	logData["s3_key"] = *input.Key // key is the s3 filename with path (it's not a cryptographic key)
-	if len(psk) == 0 {
-		return nil, NewError(errors.New("nil or empty psk provided to UploadWithPSK"), logData)
-	}
-
-	// Check that the requested Bucket is the correct one, or assign it if nil
-	if err := u.validateRequestBucket(input); err != nil {
-		return nil, err
-	}
-
-	// Perform the Upload with SPK
-	output, err := u.cryptoUploader.UploadWithPSK(input, psk)
+// Upload uploads a file to S3 using the AWS s3Manager, which will automatically split up large objects and upload them concurrently.
+func (u *Uploader) Upload(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+	logData, err := u.ValidateInput(input)
 	if err != nil {
-		return nil, NewError(err, logData)
+		return nil, NewError(
+			fmt.Errorf("validation error for Upload: %w", err),
+			logData,
+		)
+	}
+
+	output, err := u.sdkUploader.Upload(input, options...)
+	if err != nil {
+		return nil, NewError(
+			fmt.Errorf("failed to upload: %w", err),
+			logData,
+		)
 	}
 	return output, nil
 }
 
-// Upload uploads a file to S3 using the AWS s3Manager, which will automatically split up large objects and upload them concurrently
-func (u *Uploader) Upload(input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+// Upload uploads a file to S3 using the AWS s3Manager with context, which will automatically split up large objects and upload them concurrently.
+// The provided context may be used to abort the operation.
+func (u *Uploader) UploadWithContext(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+	logData, err := u.ValidateInput(input)
+	if err != nil {
+		return nil, NewError(
+			fmt.Errorf("validation error for UploadWithContext: %w", err),
+			logData,
+		)
+	}
+	if ctx == nil {
+		return nil, NewError(
+			errors.New("nil context provided to UploadWithContext"),
+			logData,
+		)
+	}
+
+	output, err := u.sdkUploader.UploadWithContext(ctx, input, options...)
+	if err != nil {
+		return nil, NewError(
+			fmt.Errorf("failed to upload with context: %w", err),
+			logData,
+		)
+	}
+	return output, nil
+}
+
+// UploadWithPSK uploads a file to S3 using cryptoclient, which allows you to encrypt the file with a given psk.
+func (u *Uploader) UploadWithPSK(input *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
+	logData, err := u.ValidateInput(input)
+	if err != nil {
+		return nil, NewError(
+			fmt.Errorf("validation error for UploadWithPSK: %w", err),
+			logData,
+		)
+	}
+	if len(psk) == 0 {
+		return nil, NewError(
+			errors.New("nil or empty psk provided to UploadWithPSK"),
+			logData,
+		)
+	}
+
+	output, err := u.cryptoUploader.UploadWithPSK(nil, input, psk)
+	if err != nil {
+		return nil, NewError(
+			fmt.Errorf("failed to upload with psk: %w", err),
+			logData,
+		)
+	}
+	return output, nil
+}
+
+// UploadWithPSKAndContext uploads a file to S3 using cryptoclient, which allows you to encrypt the file with a given psk.
+// The provided context may be used to abort the operation.
+func (u *Uploader) UploadWithPSKAndContext(ctx context.Context, input *s3manager.UploadInput, psk []byte, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+	logData, err := u.ValidateInput(input)
+	if err != nil {
+		return nil, NewError(
+			fmt.Errorf("validation error for UploadWithPSKAndContext: %w", err),
+			logData,
+		)
+	}
+	if ctx == nil {
+		return nil, NewError(
+			errors.New("nil context provided to UploadWithPSKAndContext"),
+			logData,
+		)
+	}
+	if len(psk) == 0 {
+		return nil, NewError(
+			errors.New("nil or empty psk provided to UploadWithPSKAndContext"),
+			logData,
+		)
+	}
+
+	output, err := u.cryptoUploader.UploadWithPSK(ctx, input, psk)
+	if err != nil {
+		return nil, NewError(
+			fmt.Errorf("failed to upload with psk: %w", err),
+			logData,
+		)
+	}
+	return output, nil
+}
+
+// ValidateInput checks the input and returns an error
+// if there is a bucket override mismatch or s3 key is not provided
+func (u *Uploader) ValidateInput(input *s3manager.UploadInput) (log.Data, error) {
 	logData := log.Data{
 		"bucket_name": u.bucketName,
 	}
 
-	// param validation
 	if input == nil {
-		return nil, NewError(errors.New("nil input provided to UploadWithPSK"), logData)
-	}
-	logData["s3_key"] = input.Key // key is the s3 filename with path (it's not a cryptographic key)
-
-	// Check that the requested Bucket is the correct one, or assign it if nil
-	if err := u.validateRequestBucket(input); err != nil {
-		return nil, err
+		return logData, errors.New("nil input provided")
 	}
 
-	// Perform the Upload using the AWS SDK Uploader
-	return u.sdkUploader.Upload(input, options...)
-}
+	if input.Key == nil || len(*input.Key) == 0 {
+		return logData, errors.New("nil or empty s3 key provided in input")
+	}
+	logData["s3_key"] = *input.Key // key is the s3 filename with path (it's not a cryptographic key)
 
-// validateRequestBucket checks that the requested bucket matches the bucket configured in this client, or assigns it if it is nil
-func (u *Uploader) validateRequestBucket(input *s3manager.UploadInput) error {
 	if input.Bucket == nil {
 		input.Bucket = &u.bucketName
 	} else if *input.Bucket != u.bucketName {
-		return NewError(
-			errors.New("unexpected bucket name provided in upload input"),
-			log.Data{
-				"client_bucket_name": u.bucketName,
-				"input_bucket_name":  *input.Bucket,
-			})
-	}
-	return nil
-}
-
-// Upload uploads a file to S3 using the AWS s3Manager with context, which will automatically split up large objects and upload them concurrently
-func (u *Uploader) UploadWithContext(ctx context.Context, input *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
-	logData := log.Data{
-		"bucket_name": u.bucketName,
+		logData["input_bucket_name"] = *input.Bucket
+		return logData, errors.New("unexpected bucket name provided in upload input")
 	}
 
-	// param validation
-	if input == nil {
-		return nil, NewError(errors.New("nil input provided to UploadWithPSK"), logData)
-	}
-	logData["s3_key"] = input.Key // key is the s3 filename with path (it's not a cryptographic key)
-
-	// Check that the requested Bucket is the correct one, or assign it if nil
-	if err := u.validateRequestBucket(input); err != nil {
-		return nil, err
-	}
-
-	// Perform the Upload using the AWS SDK Uploader
-	return u.sdkUploader.UploadWithContext(ctx, input, options...)
+	return logData, nil
 }

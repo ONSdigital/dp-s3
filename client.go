@@ -8,9 +8,9 @@ import (
 	"io"
 	"sync"
 
+	"github.com/ONSdigital/dp-s3/crypto"
 	"github.com/ONSdigital/log.go/v2/log"
 
-	"github.com/ONSdigital/s3crypto"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -61,7 +61,7 @@ func NewClientWithSession(bucketName string, s *session.Session) *S3 {
 	sdkClient := s3.New(s)
 
 	// Create crypto client, which allows user to provide a psk
-	cryptoClient := s3crypto.New(s, &s3crypto.Config{HasUserDefinedPSK: true})
+	cryptoClient := crypto.New(s, &crypto.Config{HasUserDefinedPSK: true})
 
 	return InstantiateClient(sdkClient, cryptoClient, bucketName, *region, s)
 }
