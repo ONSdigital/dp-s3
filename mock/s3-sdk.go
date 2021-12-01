@@ -4,63 +4,51 @@
 package mock
 
 import (
-	"github.com/ONSdigital/dp-s3"
-	"github.com/aws/aws-sdk-go/service/s3"
+	dps3 "github.com/ONSdigital/dp-s3"
+	s3 "github.com/aws/aws-sdk-go/service/s3"
 	"sync"
 )
 
-var (
-	lockS3SDKClientMockCompleteMultipartUpload sync.RWMutex
-	lockS3SDKClientMockCreateMultipartUpload   sync.RWMutex
-	lockS3SDKClientMockGetObject               sync.RWMutex
-	lockS3SDKClientMockHeadBucket              sync.RWMutex
-	lockS3SDKClientMockHeadObject              sync.RWMutex
-	lockS3SDKClientMockListMultipartUploads    sync.RWMutex
-	lockS3SDKClientMockListParts               sync.RWMutex
-	lockS3SDKClientMockUploadPart              sync.RWMutex
-)
-
-// Ensure, that S3SDKClientMock does implement s3client.S3SDKClient.
+// Ensure, that S3SDKClientMock does implement dps3.S3SDKClient.
 // If this is not the case, regenerate this file with moq.
-var _ s3client.S3SDKClient = &S3SDKClientMock{}
+var _ dps3.S3SDKClient = &S3SDKClientMock{}
 
-// Example of how to instantiate a mock for testing - this code is automatically generated
-// S3SDKClientMock is a mock implementation of s3client.S3SDKClient.
+// S3SDKClientMock is a mock implementation of dps3.S3SDKClient.
 //
-//     func TestSomethingThatUsesS3SDKClient(t *testing.T) {
+// 	func TestSomethingThatUsesS3SDKClient(t *testing.T) {
 //
-//         // make and configure a mocked s3client.S3SDKClient
-//         mockedS3SDKClient := &S3SDKClientMock{
-//             CompleteMultipartUploadFunc: func(in *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error) {
-// 	               panic("mock out the CompleteMultipartUpload method")
-//             },
-//             CreateMultipartUploadFunc: func(in *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
-// 	               panic("mock out the CreateMultipartUpload method")
-//             },
-//             GetObjectFunc: func(in *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
-// 	               panic("mock out the GetObject method")
-//             },
-//             HeadBucketFunc: func(in *s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
-// 	               panic("mock out the HeadBucket method")
-//             },
-//             HeadObjectFunc: func(in *s3.HeadObjectInput) (*s3.HeadObjectOutput, error) {
-// 	               panic("mock out the HeadObject method")
-//             },
-//             ListMultipartUploadsFunc: func(in *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
-// 	               panic("mock out the ListMultipartUploads method")
-//             },
-//             ListPartsFunc: func(in *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
-// 	               panic("mock out the ListParts method")
-//             },
-//             UploadPartFunc: func(in *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
-// 	               panic("mock out the UploadPart method")
-//             },
-//         }
+// 		// make and configure a mocked dps3.S3SDKClient
+// 		mockedS3SDKClient := &S3SDKClientMock{
+// 			CompleteMultipartUploadFunc: func(in *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error) {
+// 				panic("mock out the CompleteMultipartUpload method")
+// 			},
+// 			CreateMultipartUploadFunc: func(in *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
+// 				panic("mock out the CreateMultipartUpload method")
+// 			},
+// 			GetObjectFunc: func(in *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
+// 				panic("mock out the GetObject method")
+// 			},
+// 			HeadBucketFunc: func(in *s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
+// 				panic("mock out the HeadBucket method")
+// 			},
+// 			HeadObjectFunc: func(in *s3.HeadObjectInput) (*s3.HeadObjectOutput, error) {
+// 				panic("mock out the HeadObject method")
+// 			},
+// 			ListMultipartUploadsFunc: func(in *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+// 				panic("mock out the ListMultipartUploads method")
+// 			},
+// 			ListPartsFunc: func(in *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+// 				panic("mock out the ListParts method")
+// 			},
+// 			UploadPartFunc: func(in *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
+// 				panic("mock out the UploadPart method")
+// 			},
+// 		}
 //
-//         // use mockedS3SDKClient in code that requires s3client.S3SDKClient
-//         // and then make assertions.
+// 		// use mockedS3SDKClient in code that requires dps3.S3SDKClient
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type S3SDKClientMock struct {
 	// CompleteMultipartUploadFunc mocks the CompleteMultipartUpload method.
 	CompleteMultipartUploadFunc func(in *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error)
@@ -129,6 +117,14 @@ type S3SDKClientMock struct {
 			In *s3.UploadPartInput
 		}
 	}
+	lockCompleteMultipartUpload sync.RWMutex
+	lockCreateMultipartUpload   sync.RWMutex
+	lockGetObject               sync.RWMutex
+	lockHeadBucket              sync.RWMutex
+	lockHeadObject              sync.RWMutex
+	lockListMultipartUploads    sync.RWMutex
+	lockListParts               sync.RWMutex
+	lockUploadPart              sync.RWMutex
 }
 
 // CompleteMultipartUpload calls CompleteMultipartUploadFunc.
@@ -141,9 +137,9 @@ func (mock *S3SDKClientMock) CompleteMultipartUpload(in *s3.CompleteMultipartUpl
 	}{
 		In: in,
 	}
-	lockS3SDKClientMockCompleteMultipartUpload.Lock()
+	mock.lockCompleteMultipartUpload.Lock()
 	mock.calls.CompleteMultipartUpload = append(mock.calls.CompleteMultipartUpload, callInfo)
-	lockS3SDKClientMockCompleteMultipartUpload.Unlock()
+	mock.lockCompleteMultipartUpload.Unlock()
 	return mock.CompleteMultipartUploadFunc(in)
 }
 
@@ -156,9 +152,9 @@ func (mock *S3SDKClientMock) CompleteMultipartUploadCalls() []struct {
 	var calls []struct {
 		In *s3.CompleteMultipartUploadInput
 	}
-	lockS3SDKClientMockCompleteMultipartUpload.RLock()
+	mock.lockCompleteMultipartUpload.RLock()
 	calls = mock.calls.CompleteMultipartUpload
-	lockS3SDKClientMockCompleteMultipartUpload.RUnlock()
+	mock.lockCompleteMultipartUpload.RUnlock()
 	return calls
 }
 
@@ -172,9 +168,9 @@ func (mock *S3SDKClientMock) CreateMultipartUpload(in *s3.CreateMultipartUploadI
 	}{
 		In: in,
 	}
-	lockS3SDKClientMockCreateMultipartUpload.Lock()
+	mock.lockCreateMultipartUpload.Lock()
 	mock.calls.CreateMultipartUpload = append(mock.calls.CreateMultipartUpload, callInfo)
-	lockS3SDKClientMockCreateMultipartUpload.Unlock()
+	mock.lockCreateMultipartUpload.Unlock()
 	return mock.CreateMultipartUploadFunc(in)
 }
 
@@ -187,9 +183,9 @@ func (mock *S3SDKClientMock) CreateMultipartUploadCalls() []struct {
 	var calls []struct {
 		In *s3.CreateMultipartUploadInput
 	}
-	lockS3SDKClientMockCreateMultipartUpload.RLock()
+	mock.lockCreateMultipartUpload.RLock()
 	calls = mock.calls.CreateMultipartUpload
-	lockS3SDKClientMockCreateMultipartUpload.RUnlock()
+	mock.lockCreateMultipartUpload.RUnlock()
 	return calls
 }
 
@@ -203,9 +199,9 @@ func (mock *S3SDKClientMock) GetObject(in *s3.GetObjectInput) (*s3.GetObjectOutp
 	}{
 		In: in,
 	}
-	lockS3SDKClientMockGetObject.Lock()
+	mock.lockGetObject.Lock()
 	mock.calls.GetObject = append(mock.calls.GetObject, callInfo)
-	lockS3SDKClientMockGetObject.Unlock()
+	mock.lockGetObject.Unlock()
 	return mock.GetObjectFunc(in)
 }
 
@@ -218,9 +214,9 @@ func (mock *S3SDKClientMock) GetObjectCalls() []struct {
 	var calls []struct {
 		In *s3.GetObjectInput
 	}
-	lockS3SDKClientMockGetObject.RLock()
+	mock.lockGetObject.RLock()
 	calls = mock.calls.GetObject
-	lockS3SDKClientMockGetObject.RUnlock()
+	mock.lockGetObject.RUnlock()
 	return calls
 }
 
@@ -234,9 +230,9 @@ func (mock *S3SDKClientMock) HeadBucket(in *s3.HeadBucketInput) (*s3.HeadBucketO
 	}{
 		In: in,
 	}
-	lockS3SDKClientMockHeadBucket.Lock()
+	mock.lockHeadBucket.Lock()
 	mock.calls.HeadBucket = append(mock.calls.HeadBucket, callInfo)
-	lockS3SDKClientMockHeadBucket.Unlock()
+	mock.lockHeadBucket.Unlock()
 	return mock.HeadBucketFunc(in)
 }
 
@@ -249,9 +245,9 @@ func (mock *S3SDKClientMock) HeadBucketCalls() []struct {
 	var calls []struct {
 		In *s3.HeadBucketInput
 	}
-	lockS3SDKClientMockHeadBucket.RLock()
+	mock.lockHeadBucket.RLock()
 	calls = mock.calls.HeadBucket
-	lockS3SDKClientMockHeadBucket.RUnlock()
+	mock.lockHeadBucket.RUnlock()
 	return calls
 }
 
@@ -265,9 +261,9 @@ func (mock *S3SDKClientMock) HeadObject(in *s3.HeadObjectInput) (*s3.HeadObjectO
 	}{
 		In: in,
 	}
-	lockS3SDKClientMockHeadObject.Lock()
+	mock.lockHeadObject.Lock()
 	mock.calls.HeadObject = append(mock.calls.HeadObject, callInfo)
-	lockS3SDKClientMockHeadObject.Unlock()
+	mock.lockHeadObject.Unlock()
 	return mock.HeadObjectFunc(in)
 }
 
@@ -280,9 +276,9 @@ func (mock *S3SDKClientMock) HeadObjectCalls() []struct {
 	var calls []struct {
 		In *s3.HeadObjectInput
 	}
-	lockS3SDKClientMockHeadObject.RLock()
+	mock.lockHeadObject.RLock()
 	calls = mock.calls.HeadObject
-	lockS3SDKClientMockHeadObject.RUnlock()
+	mock.lockHeadObject.RUnlock()
 	return calls
 }
 
@@ -296,9 +292,9 @@ func (mock *S3SDKClientMock) ListMultipartUploads(in *s3.ListMultipartUploadsInp
 	}{
 		In: in,
 	}
-	lockS3SDKClientMockListMultipartUploads.Lock()
+	mock.lockListMultipartUploads.Lock()
 	mock.calls.ListMultipartUploads = append(mock.calls.ListMultipartUploads, callInfo)
-	lockS3SDKClientMockListMultipartUploads.Unlock()
+	mock.lockListMultipartUploads.Unlock()
 	return mock.ListMultipartUploadsFunc(in)
 }
 
@@ -311,9 +307,9 @@ func (mock *S3SDKClientMock) ListMultipartUploadsCalls() []struct {
 	var calls []struct {
 		In *s3.ListMultipartUploadsInput
 	}
-	lockS3SDKClientMockListMultipartUploads.RLock()
+	mock.lockListMultipartUploads.RLock()
 	calls = mock.calls.ListMultipartUploads
-	lockS3SDKClientMockListMultipartUploads.RUnlock()
+	mock.lockListMultipartUploads.RUnlock()
 	return calls
 }
 
@@ -327,9 +323,9 @@ func (mock *S3SDKClientMock) ListParts(in *s3.ListPartsInput) (*s3.ListPartsOutp
 	}{
 		In: in,
 	}
-	lockS3SDKClientMockListParts.Lock()
+	mock.lockListParts.Lock()
 	mock.calls.ListParts = append(mock.calls.ListParts, callInfo)
-	lockS3SDKClientMockListParts.Unlock()
+	mock.lockListParts.Unlock()
 	return mock.ListPartsFunc(in)
 }
 
@@ -342,9 +338,9 @@ func (mock *S3SDKClientMock) ListPartsCalls() []struct {
 	var calls []struct {
 		In *s3.ListPartsInput
 	}
-	lockS3SDKClientMockListParts.RLock()
+	mock.lockListParts.RLock()
 	calls = mock.calls.ListParts
-	lockS3SDKClientMockListParts.RUnlock()
+	mock.lockListParts.RUnlock()
 	return calls
 }
 
@@ -358,9 +354,9 @@ func (mock *S3SDKClientMock) UploadPart(in *s3.UploadPartInput) (*s3.UploadPartO
 	}{
 		In: in,
 	}
-	lockS3SDKClientMockUploadPart.Lock()
+	mock.lockUploadPart.Lock()
 	mock.calls.UploadPart = append(mock.calls.UploadPart, callInfo)
-	lockS3SDKClientMockUploadPart.Unlock()
+	mock.lockUploadPart.Unlock()
 	return mock.UploadPartFunc(in)
 }
 
@@ -373,8 +369,8 @@ func (mock *S3SDKClientMock) UploadPartCalls() []struct {
 	var calls []struct {
 		In *s3.UploadPartInput
 	}
-	lockS3SDKClientMockUploadPart.RLock()
+	mock.lockUploadPart.RLock()
 	calls = mock.calls.UploadPart
-	lockS3SDKClientMockUploadPart.RUnlock()
+	mock.lockUploadPart.RUnlock()
 	return calls
 }

@@ -46,11 +46,11 @@ The client contains a bucket and region, note that the bucket needs to be create
 There are 2 available constructors:
 - Constructor without AWS session (will create a new session):
 ```
-s3cli := s3client.NewClient(<region>, <bucket>)
+s3cli := dps3.NewClient(<region>, <bucket>)
 ```
 - Constructor with AWS session (will reuse the provided session):
 ```
-s3cli := s3client.NewClientWithSession(<bucket>, <awsSession>)
+s3cli := dps3.NewClientWithSession(<bucket>, <awsSession>)
 ```
 It is recommended to create a single AWS session in your service and reuse it if you need other clients. The client offers a session getter: `s3cli.Session()`
 
@@ -76,11 +76,11 @@ Similarly to the s3 client, you can create an uploader and establish a new sessi
 
 - Constructor without AWS session (will create a new session):
 ```
-s3Uploader := s3client.NewUploader(<region>, <bucket>)
+s3Uploader := dps3.NewUploader(<region>, <bucket>)
 ```
 - Constructor with AWS session (will reuse the provided session):
 ```
-s3Uploader := s3client.NewUploaderWithSession(<bucket>, <awsSession>)
+s3Uploader := dps3.NewUploaderWithSession(<bucket>, <awsSession>)
 ```
 
 Similarly to the s3 client, it is recommended to reuse AWS sessions between clients/uploaderes.

@@ -10,34 +10,28 @@ import (
 	"sync"
 )
 
-var (
-	lockS3SDKUploaderMockUpload            sync.RWMutex
-	lockS3SDKUploaderMockUploadWithContext sync.RWMutex
-)
-
-// Ensure, that S3SDKUploaderMock does implement s3client.S3SDKUploader.
+// Ensure, that S3SDKUploaderMock does implement s3.S3SDKUploader.
 // If this is not the case, regenerate this file with moq.
-var _ s3client.S3SDKUploader = &S3SDKUploaderMock{}
+var _ s3.S3SDKUploader = &S3SDKUploaderMock{}
 
-// Example of how to instantiate a mock for testing - this code is automatically generated
-// S3SDKUploaderMock is a mock implementation of s3client.S3SDKUploader.
+// S3SDKUploaderMock is a mock implementation of s3.S3SDKUploader.
 //
-//     func TestSomethingThatUsesS3SDKUploader(t *testing.T) {
+// 	func TestSomethingThatUsesS3SDKUploader(t *testing.T) {
 //
-//         // make and configure a mocked s3client.S3SDKUploader
-//         mockedS3SDKUploader := &S3SDKUploaderMock{
-//             UploadFunc: func(in *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
-// 	               panic("mock out the Upload method")
-//             },
-//             UploadWithContextFunc: func(ctx context.Context, in *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
-// 	               panic("mock out the UploadWithContext method")
-//             },
-//         }
+// 		// make and configure a mocked s3.S3SDKUploader
+// 		mockedS3SDKUploader := &S3SDKUploaderMock{
+// 			UploadFunc: func(in *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+// 				panic("mock out the Upload method")
+// 			},
+// 			UploadWithContextFunc: func(ctx context.Context, in *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+// 				panic("mock out the UploadWithContext method")
+// 			},
+// 		}
 //
-//         // use mockedS3SDKUploader in code that requires s3client.S3SDKUploader
-//         // and then make assertions.
+// 		// use mockedS3SDKUploader in code that requires s3.S3SDKUploader
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type S3SDKUploaderMock struct {
 	// UploadFunc mocks the Upload method.
 	UploadFunc func(in *s3manager.UploadInput, options ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
@@ -64,6 +58,8 @@ type S3SDKUploaderMock struct {
 			Options []func(*s3manager.Uploader)
 		}
 	}
+	lockUpload            sync.RWMutex
+	lockUploadWithContext sync.RWMutex
 }
 
 // Upload calls UploadFunc.
@@ -78,9 +74,9 @@ func (mock *S3SDKUploaderMock) Upload(in *s3manager.UploadInput, options ...func
 		In:      in,
 		Options: options,
 	}
-	lockS3SDKUploaderMockUpload.Lock()
+	mock.lockUpload.Lock()
 	mock.calls.Upload = append(mock.calls.Upload, callInfo)
-	lockS3SDKUploaderMockUpload.Unlock()
+	mock.lockUpload.Unlock()
 	return mock.UploadFunc(in, options...)
 }
 
@@ -95,9 +91,9 @@ func (mock *S3SDKUploaderMock) UploadCalls() []struct {
 		In      *s3manager.UploadInput
 		Options []func(*s3manager.Uploader)
 	}
-	lockS3SDKUploaderMockUpload.RLock()
+	mock.lockUpload.RLock()
 	calls = mock.calls.Upload
-	lockS3SDKUploaderMockUpload.RUnlock()
+	mock.lockUpload.RUnlock()
 	return calls
 }
 
@@ -115,9 +111,9 @@ func (mock *S3SDKUploaderMock) UploadWithContext(ctx context.Context, in *s3mana
 		In:      in,
 		Options: options,
 	}
-	lockS3SDKUploaderMockUploadWithContext.Lock()
+	mock.lockUploadWithContext.Lock()
 	mock.calls.UploadWithContext = append(mock.calls.UploadWithContext, callInfo)
-	lockS3SDKUploaderMockUploadWithContext.Unlock()
+	mock.lockUploadWithContext.Unlock()
 	return mock.UploadWithContextFunc(ctx, in, options...)
 }
 
@@ -134,8 +130,8 @@ func (mock *S3SDKUploaderMock) UploadWithContextCalls() []struct {
 		In      *s3manager.UploadInput
 		Options []func(*s3manager.Uploader)
 	}
-	lockS3SDKUploaderMockUploadWithContext.RLock()
+	mock.lockUploadWithContext.RLock()
 	calls = mock.calls.UploadWithContext
-	lockS3SDKUploaderMockUploadWithContext.RUnlock()
+	mock.lockUploadWithContext.RUnlock()
 	return calls
 }

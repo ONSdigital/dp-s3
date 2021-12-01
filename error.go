@@ -1,10 +1,10 @@
-package s3client
+package s3
 
 import (
 	"github.com/ONSdigital/log.go/v2/log"
 )
 
-// Error is the s3client package's error type
+// Error is the s3 package's error type
 type Error struct {
 	err     error
 	logData map[string]interface{}

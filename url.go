@@ -1,4 +1,8 @@
-package s3client
+// file: url.go
+//
+// Contains string manipulation methods to obtain an S3 URL in the different styles supported by AWS
+// and translate from one to another.
+package s3
 
 import (
 	"errors"

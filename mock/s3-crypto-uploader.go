@@ -10,30 +10,25 @@ import (
 	"sync"
 )
 
-var (
-	lockS3CryptoUploaderMockUploadWithPSK sync.RWMutex
-)
-
-// Ensure, that S3CryptoUploaderMock does implement s3client.S3CryptoUploader.
+// Ensure, that S3CryptoUploaderMock does implement s3.S3CryptoUploader.
 // If this is not the case, regenerate this file with moq.
-var _ s3client.S3CryptoUploader = &S3CryptoUploaderMock{}
+var _ s3.S3CryptoUploader = &S3CryptoUploaderMock{}
 
-// Example of how to instantiate a mock for testing - this code is automatically generated
-// S3CryptoUploaderMock is a mock implementation of s3client.S3CryptoUploader.
+// S3CryptoUploaderMock is a mock implementation of s3.S3CryptoUploader.
 //
-//     func TestSomethingThatUsesS3CryptoUploader(t *testing.T) {
+// 	func TestSomethingThatUsesS3CryptoUploader(t *testing.T) {
 //
-//         // make and configure a mocked s3client.S3CryptoUploader
-//         mockedS3CryptoUploader := &S3CryptoUploaderMock{
-//             UploadWithPSKFunc: func(ctx context.Context, in *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
-// 	               panic("mock out the UploadWithPSK method")
-//             },
-//         }
+// 		// make and configure a mocked s3.S3CryptoUploader
+// 		mockedS3CryptoUploader := &S3CryptoUploaderMock{
+// 			UploadWithPSKFunc: func(ctx context.Context, in *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
+// 				panic("mock out the UploadWithPSK method")
+// 			},
+// 		}
 //
-//         // use mockedS3CryptoUploader in code that requires s3client.S3CryptoUploader
-//         // and then make assertions.
+// 		// use mockedS3CryptoUploader in code that requires s3.S3CryptoUploader
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type S3CryptoUploaderMock struct {
 	// UploadWithPSKFunc mocks the UploadWithPSK method.
 	UploadWithPSKFunc func(ctx context.Context, in *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error)
@@ -50,6 +45,7 @@ type S3CryptoUploaderMock struct {
 			Psk []byte
 		}
 	}
+	lockUploadWithPSK sync.RWMutex
 }
 
 // UploadWithPSK calls UploadWithPSKFunc.
@@ -66,9 +62,9 @@ func (mock *S3CryptoUploaderMock) UploadWithPSK(ctx context.Context, in *s3manag
 		In:  in,
 		Psk: psk,
 	}
-	lockS3CryptoUploaderMockUploadWithPSK.Lock()
+	mock.lockUploadWithPSK.Lock()
 	mock.calls.UploadWithPSK = append(mock.calls.UploadWithPSK, callInfo)
-	lockS3CryptoUploaderMockUploadWithPSK.Unlock()
+	mock.lockUploadWithPSK.Unlock()
 	return mock.UploadWithPSKFunc(ctx, in, psk)
 }
 
@@ -85,8 +81,8 @@ func (mock *S3CryptoUploaderMock) UploadWithPSKCalls() []struct {
 		In  *s3manager.UploadInput
 		Psk []byte
 	}
-	lockS3CryptoUploaderMockUploadWithPSK.RLock()
+	mock.lockUploadWithPSK.RLock()
 	calls = mock.calls.UploadWithPSK
-	lockS3CryptoUploaderMockUploadWithPSK.RUnlock()
+	mock.lockUploadWithPSK.RUnlock()
 	return calls
 }

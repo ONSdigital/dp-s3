@@ -4,43 +4,36 @@
 package mock
 
 import (
-	"github.com/ONSdigital/dp-s3"
-	"github.com/aws/aws-sdk-go/service/s3"
+	dps3 "github.com/ONSdigital/dp-s3"
+	s3 "github.com/aws/aws-sdk-go/service/s3"
 	"sync"
 )
 
-var (
-	lockS3CryptoClientMockGetObjectWithPSK  sync.RWMutex
-	lockS3CryptoClientMockPutObjectWithPSK  sync.RWMutex
-	lockS3CryptoClientMockUploadPartWithPSK sync.RWMutex
-)
-
-// Ensure, that S3CryptoClientMock does implement s3client.S3CryptoClient.
+// Ensure, that S3CryptoClientMock does implement dps3.S3CryptoClient.
 // If this is not the case, regenerate this file with moq.
-var _ s3client.S3CryptoClient = &S3CryptoClientMock{}
+var _ dps3.S3CryptoClient = &S3CryptoClientMock{}
 
-// Example of how to instantiate a mock for testing - this code is automatically generated
-// S3CryptoClientMock is a mock implementation of s3client.S3CryptoClient.
+// S3CryptoClientMock is a mock implementation of dps3.S3CryptoClient.
 //
-//     func TestSomethingThatUsesS3CryptoClient(t *testing.T) {
+// 	func TestSomethingThatUsesS3CryptoClient(t *testing.T) {
 //
-//         // make and configure a mocked s3client.S3CryptoClient
-//         mockedS3CryptoClient := &S3CryptoClientMock{
-//             GetObjectWithPSKFunc: func(in *s3.GetObjectInput, psk []byte) (*s3.GetObjectOutput, error) {
-// 	               panic("mock out the GetObjectWithPSK method")
-//             },
-//             PutObjectWithPSKFunc: func(in *s3.PutObjectInput, psk []byte) (*s3.PutObjectOutput, error) {
-// 	               panic("mock out the PutObjectWithPSK method")
-//             },
-//             UploadPartWithPSKFunc: func(in *s3.UploadPartInput, psk []byte) (*s3.UploadPartOutput, error) {
-// 	               panic("mock out the UploadPartWithPSK method")
-//             },
-//         }
+// 		// make and configure a mocked dps3.S3CryptoClient
+// 		mockedS3CryptoClient := &S3CryptoClientMock{
+// 			GetObjectWithPSKFunc: func(in *s3.GetObjectInput, psk []byte) (*s3.GetObjectOutput, error) {
+// 				panic("mock out the GetObjectWithPSK method")
+// 			},
+// 			PutObjectWithPSKFunc: func(in *s3.PutObjectInput, psk []byte) (*s3.PutObjectOutput, error) {
+// 				panic("mock out the PutObjectWithPSK method")
+// 			},
+// 			UploadPartWithPSKFunc: func(in *s3.UploadPartInput, psk []byte) (*s3.UploadPartOutput, error) {
+// 				panic("mock out the UploadPartWithPSK method")
+// 			},
+// 		}
 //
-//         // use mockedS3CryptoClient in code that requires s3client.S3CryptoClient
-//         // and then make assertions.
+// 		// use mockedS3CryptoClient in code that requires dps3.S3CryptoClient
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type S3CryptoClientMock struct {
 	// GetObjectWithPSKFunc mocks the GetObjectWithPSK method.
 	GetObjectWithPSKFunc func(in *s3.GetObjectInput, psk []byte) (*s3.GetObjectOutput, error)
@@ -75,6 +68,9 @@ type S3CryptoClientMock struct {
 			Psk []byte
 		}
 	}
+	lockGetObjectWithPSK  sync.RWMutex
+	lockPutObjectWithPSK  sync.RWMutex
+	lockUploadPartWithPSK sync.RWMutex
 }
 
 // GetObjectWithPSK calls GetObjectWithPSKFunc.
@@ -89,9 +85,9 @@ func (mock *S3CryptoClientMock) GetObjectWithPSK(in *s3.GetObjectInput, psk []by
 		In:  in,
 		Psk: psk,
 	}
-	lockS3CryptoClientMockGetObjectWithPSK.Lock()
+	mock.lockGetObjectWithPSK.Lock()
 	mock.calls.GetObjectWithPSK = append(mock.calls.GetObjectWithPSK, callInfo)
-	lockS3CryptoClientMockGetObjectWithPSK.Unlock()
+	mock.lockGetObjectWithPSK.Unlock()
 	return mock.GetObjectWithPSKFunc(in, psk)
 }
 
@@ -106,9 +102,9 @@ func (mock *S3CryptoClientMock) GetObjectWithPSKCalls() []struct {
 		In  *s3.GetObjectInput
 		Psk []byte
 	}
-	lockS3CryptoClientMockGetObjectWithPSK.RLock()
+	mock.lockGetObjectWithPSK.RLock()
 	calls = mock.calls.GetObjectWithPSK
-	lockS3CryptoClientMockGetObjectWithPSK.RUnlock()
+	mock.lockGetObjectWithPSK.RUnlock()
 	return calls
 }
 
@@ -124,9 +120,9 @@ func (mock *S3CryptoClientMock) PutObjectWithPSK(in *s3.PutObjectInput, psk []by
 		In:  in,
 		Psk: psk,
 	}
-	lockS3CryptoClientMockPutObjectWithPSK.Lock()
+	mock.lockPutObjectWithPSK.Lock()
 	mock.calls.PutObjectWithPSK = append(mock.calls.PutObjectWithPSK, callInfo)
-	lockS3CryptoClientMockPutObjectWithPSK.Unlock()
+	mock.lockPutObjectWithPSK.Unlock()
 	return mock.PutObjectWithPSKFunc(in, psk)
 }
 
@@ -141,9 +137,9 @@ func (mock *S3CryptoClientMock) PutObjectWithPSKCalls() []struct {
 		In  *s3.PutObjectInput
 		Psk []byte
 	}
-	lockS3CryptoClientMockPutObjectWithPSK.RLock()
+	mock.lockPutObjectWithPSK.RLock()
 	calls = mock.calls.PutObjectWithPSK
-	lockS3CryptoClientMockPutObjectWithPSK.RUnlock()
+	mock.lockPutObjectWithPSK.RUnlock()
 	return calls
 }
 
@@ -159,9 +155,9 @@ func (mock *S3CryptoClientMock) UploadPartWithPSK(in *s3.UploadPartInput, psk []
 		In:  in,
 		Psk: psk,
 	}
-	lockS3CryptoClientMockUploadPartWithPSK.Lock()
+	mock.lockUploadPartWithPSK.Lock()
 	mock.calls.UploadPartWithPSK = append(mock.calls.UploadPartWithPSK, callInfo)
-	lockS3CryptoClientMockUploadPartWithPSK.Unlock()
+	mock.lockUploadPartWithPSK.Unlock()
 	return mock.UploadPartWithPSKFunc(in, psk)
 }
 
@@ -176,8 +172,8 @@ func (mock *S3CryptoClientMock) UploadPartWithPSKCalls() []struct {
 		In  *s3.UploadPartInput
 		Psk []byte
 	}
-	lockS3CryptoClientMockUploadPartWithPSK.RLock()
+	mock.lockUploadPartWithPSK.RLock()
 	calls = mock.calls.UploadPartWithPSK
-	lockS3CryptoClientMockUploadPartWithPSK.RUnlock()
+	mock.lockUploadPartWithPSK.RUnlock()
 	return calls
 }
