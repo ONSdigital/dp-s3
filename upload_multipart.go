@@ -4,8 +4,8 @@
 // by using the low level SDK methods that give the caller control over
 // the multipart uploading process.
 //
-// Requires "s3:PutObject" action allowed by IAM policy for the bucket,
-// as defined by `write-{bucketName}-bucket` policies in dp-setup
+// Requires "s3:PutObject", "s3:GetObject" and "s3:AbortMultipartUpload" actions allowed by IAM policy for the bucket,
+// as defined by `multipart-{bucketName}-bucket` policies in dp-setup
 package s3
 
 import (
