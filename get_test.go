@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"testing"
 
-	dps3 "github.com/ONSdigital/dp-s3"
-	"github.com/ONSdigital/dp-s3/mock"
+	dps3 "github.com/ONSdigital/dp-s3/v2"
+	"github.com/ONSdigital/dp-s3/v2/mock"
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/aws/aws-sdk-go/service/s3"
 	. "github.com/smartystreets/goconvey/convey"

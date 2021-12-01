@@ -50,7 +50,7 @@ There are 2 available constructors:
 - Constructor without AWS session (will create a new session):
 
 ```golang
-import dps3 "github.com/ONSdigital/dp-s3"
+import dps3 "github.com/ONSdigital/dp-s3/v2"
 
 s3cli := dps3.NewClient(region, bucket)
 ```
@@ -58,7 +58,7 @@ s3cli := dps3.NewClient(region, bucket)
 - Constructor with AWS session (will reuse the provided session):
 
 ```golang
-import dps3 "github.com/ONSdigital/dp-s3"
+import dps3 "github.com/ONSdigital/dp-s3/v2"
 
 s3cli := dps3.NewClientWithSession(bucket, awsSession)
 ```

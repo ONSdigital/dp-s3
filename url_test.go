@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	dps3 "github.com/ONSdigital/dp-s3"
+	dps3 "github.com/ONSdigital/dp-s3/v2"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

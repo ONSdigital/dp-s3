@@ -5,8 +5,8 @@ import (
 	"io"
 	"testing"
 
-	dps3 "github.com/ONSdigital/dp-s3"
-	"github.com/ONSdigital/dp-s3/mock"
+	dps3 "github.com/ONSdigital/dp-s3/v2"
+	"github.com/ONSdigital/dp-s3/v2/mock"
 	"github.com/aws/aws-sdk-go/service/s3"
 	. "github.com/smartystreets/goconvey/convey"
 )
