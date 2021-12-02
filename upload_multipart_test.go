@@ -312,7 +312,7 @@ func TestCheckUpload(t *testing.T) {
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
 			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldResemble, fmt.Errorf("chunk number verification error: %w", skdListPartsErr).Error())
+			So(err.Error(), ShouldResemble, fmt.Errorf("list parts failed: %w", skdListPartsErr).Error())
 		})
 
 		Convey("If the chunk has been uploaded but the multipart upload is not completed yet, then the function should return true", func() {

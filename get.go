@@ -22,6 +22,9 @@ import (
 // in the format specified by URLStyle.
 // More information about s3 URL styles: https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
 // If the URL defines a region (if provided) or bucket different from the one configured in this client, an error will be returned.
+//
+// The caller is responsible for closing the returned ReadCloser.
+// For example, it may be closed in a defer statement: defer r.Close()
 func (cli *Client) GetFromS3URL(rawURL string, style URLStyle) (io.ReadCloser, *int64, error) {
 	return cli.doGetFromS3URL(rawURL, style, nil)
 
@@ -31,6 +34,9 @@ func (cli *Client) GetFromS3URL(rawURL string, style URLStyle) (io.ReadCloser, *
 // in the format specified by URLStyle, using the provided PSK for encryption.
 // More information about s3 URL styles: https://docs.aws.amazon.com/AmazonS3/latest/dev/VirtualHosting.html
 // If the URL defines a region (if provided) or bucket different from the one configured in this client, an error will be returned.
+//
+// The caller is responsible for closing the returned ReadCloser.
+// For example, it may be closed in a defer statement: defer r.Close()
 func (cli *Client) GetFromS3URLWithPSK(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, *int64, error) {
 	return cli.doGetFromS3URL(rawURL, style, psk)
 }
@@ -68,6 +74,9 @@ func (cli *Client) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io
 // Get returns an io.ReadCloser instance for the given path (inside the bucket configured for this client)
 // and the content length (size in bytes).
 // They 'key' parameter refers to the path for the file under the bucket.
+//
+// The caller is responsible for closing the returned ReadCloser.
+// For example, it may be closed in a defer statement: defer r.Close()
 func (cli *Client) Get(key string) (io.ReadCloser, *int64, error) {
 
 	input := &s3.GetObjectInput{
@@ -90,6 +99,9 @@ func (cli *Client) Get(key string) (io.ReadCloser, *int64, error) {
 // GetWithPSK returns an io.ReadCloser instance for the given path (inside the bucket configured for this client)
 // and the content length (size in bytes). It uses the provided PSK for encryption.
 // The 'key' parameter refers to the path for the file under the bucket.
+//
+// The caller is responsible for closing the returned ReadCloser.
+// For example, it may be closed in a defer statement: defer r.Close()
 func (cli *Client) GetWithPSK(key string, psk []byte) (io.ReadCloser, *int64, error) {
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(cli.bucketName),

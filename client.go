@@ -60,10 +60,10 @@ func NewClientWithSession(bucketName string, s *session.Session) *Client {
 	sdkUploader := s3manager.NewUploader(s)
 
 	// Create crypto client, which allows user to provide a psk
-	cryptoUploader := crypto.NewUploader(s, &crypto.Config{HasUserDefinedPSK: true})
-
-	// Create crypto client, which allows user to provide a psk
 	cryptoClient := crypto.New(s, &crypto.Config{HasUserDefinedPSK: true})
+
+	// Create crypto uploader, which allows user to provide a psk
+	cryptoUploader := crypto.NewUploader(s, &crypto.Config{HasUserDefinedPSK: true})
 
 	return InstantiateClient(sdkClient, cryptoClient, sdkUploader, cryptoUploader, bucketName, *region, s)
 }

@@ -131,17 +131,20 @@ func ParseGlobalPathStyleURL(gpURL string) (*S3Url, error) {
 func parsePath(url *url.URL) (bucketName string, key string, err error) {
 	splittedPath := strings.Split(url.Path, "/")
 	if len(splittedPath) < 3 {
-		return "", "", fmt.Errorf("could not find bucket or filename in file path-style url %s", url.String())
+		err = fmt.Errorf("could not find bucket or filename in file path-style url %s", url.String())
+		return
 	}
 
 	bucketName = splittedPath[1]
 	if len(bucketName) == 0 {
-		return "", "", fmt.Errorf("missing bucket name in path-style url %s", url.String())
+		err = fmt.Errorf("missing bucket name in path-style url %s", url.String())
+		return
 	}
 
 	key = strings.TrimPrefix(url.Path, fmt.Sprintf("/%s/", bucketName))
 	if len(key) == 0 {
-		return "", "", fmt.Errorf("missing s3 object key in path-style url %s", url.String())
+		err = fmt.Errorf("missing s3 object key in path-style url %s", url.String())
+		return
 	}
 	return
 }

@@ -90,7 +90,8 @@ func (cli *Client) UploadPartWithPsk(ctx context.Context, req *UploadPartRequest
 
 // doGetOrCreateMultipartUpload atomically gets the UploadId for the specified bucket
 // and S3 object key, and if it does not find it, it creates it.
-func (cli *Client) doGetOrCreateMultipartUpload(ctx context.Context, req *UploadPartRequest) (uploadID string, err error) {
+// The uploadID is returned. If an error happens, it will be wrapped and returned.
+func (cli *Client) doGetOrCreateMultipartUpload(ctx context.Context, req *UploadPartRequest) (string, error) {
 	cli.mutexUploadID.Lock()
 	defer cli.mutexUploadID.Unlock()
 
@@ -106,8 +107,7 @@ func (cli *Client) doGetOrCreateMultipartUpload(ctx context.Context, req *Upload
 	// Try to find a multipart upload for the same s3 object that we want
 	for _, upload := range listMultiOutput.Uploads {
 		if *upload.Key == req.UploadKey {
-			uploadID = *upload.UploadId
-			return uploadID, nil
+			return *upload.UploadId, nil
 		}
 	}
 
@@ -125,26 +125,28 @@ func (cli *Client) doGetOrCreateMultipartUpload(ctx context.Context, req *Upload
 }
 
 // doUploadPart performs the upload using the sdkClient if no psk is provided, or the cryptoClient if psk is provided
-func (cli *Client) doUploadPart(ctx context.Context, input *s3.UploadPartInput, psk []byte) (out *s3.UploadPartOutput, err error) {
+// The UploadPartOutput is returned. If an error happens, it will be wrapped and returned.
+func (cli *Client) doUploadPart(ctx context.Context, input *s3.UploadPartInput, psk []byte) (*s3.UploadPartOutput, error) {
 	if psk != nil {
 		// Upload Part with PSK
-		out, err = cli.cryptoClient.UploadPartWithPSK(input, psk)
+		out, err := cli.cryptoClient.UploadPartWithPSK(input, psk)
 		if err != nil {
 			return nil, fmt.Errorf("error uploading part with psk: %w", err)
 		}
-		return
+		return out, nil
 	}
 
 	// Upload part without user-defined PSK
-	out, err = cli.sdkClient.UploadPart(input)
+	out, err := cli.sdkClient.UploadPart(input)
 	if err != nil {
-		return nil, fmt.Errorf("error uploading part with psk: %w", err)
+		return nil, fmt.Errorf("error uploading part: %w", err)
 	}
-	return
+	return out, err
 }
 
 // CheckPartUploaded returns true only if the chunk corresponding to the provided chunkNumber has been uploaded.
 // If all the chunks have been uploaded, we complete the upload operation.
+// A boolean value which indicates if the call uploaded the last part is returned. If an error happens, it will be wrapped and returned.
 func (cli *Client) CheckPartUploaded(ctx context.Context, req *UploadPartRequest) (bool, error) {
 	logData := log.Data{
 		"chunk_number": req.ChunkNumber,
@@ -182,7 +184,7 @@ func (cli *Client) CheckPartUploaded(ctx context.Context, req *UploadPartRequest
 
 	output, err := cli.sdkClient.ListParts(input)
 	if err != nil {
-		return false, NewError(fmt.Errorf("chunk number verification error: %w", err), logData)
+		return false, NewError(fmt.Errorf("list parts failed: %w", err), logData)
 	}
 
 	// TODO: If there are more than 1000 parts, they will be paginated, so we would need to call ListParts again with the provided Marker until we have all of them.
