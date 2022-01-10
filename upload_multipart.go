@@ -13,7 +13,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
@@ -27,13 +26,19 @@ type UploadPartRequest struct {
 	FileName    string
 }
 
+type MultipartUploadResponse struct {
+	Etag string
+	AllPartsUploaded bool
+}
+
 // UploadPart handles the uploading a file to AWS S3, into the bucket configured for this client
 func (cli *Client) UploadPart(ctx context.Context, req *UploadPartRequest, payload []byte) error {
-	return cli.UploadPartWithPsk(ctx, req, payload, nil)
+	_, err := cli.UploadPartWithPsk(ctx, req, payload, nil)
+	return err
 }
 
 // UploadPartWithPsk handles the uploading a file to AWS S3, into the bucket configured for this client, using a user-defined psk
-func (cli *Client) UploadPartWithPsk(ctx context.Context, req *UploadPartRequest, payload []byte, psk []byte) error {
+func (cli *Client) UploadPartWithPsk(ctx context.Context, req *UploadPartRequest, payload []byte, psk []byte) (MultipartUploadResponse, error) {
 	logData := log.Data{
 		"chunk_number": req.ChunkNumber,
 		"max_chunks":   req.TotalChunks,
@@ -45,11 +50,11 @@ func (cli *Client) UploadPartWithPsk(ctx context.Context, req *UploadPartRequest
 	// Get UploadID or create it if it does not exist (atomically)
 	uploadID, err := cli.doGetOrCreateMultipartUpload(ctx, req)
 	if err != nil {
-		return NewError(err, logData)
+		return MultipartUploadResponse{}, NewError(err, logData)
 	}
 
 	// Do the upload against AWS
-	_, err = cli.doUploadPart(
+	uploadPartOutput, err := cli.doUploadPart(
 		ctx,
 		&s3.UploadPartInput{
 			UploadId:   &uploadID,
@@ -61,7 +66,7 @@ func (cli *Client) UploadPartWithPsk(ctx context.Context, req *UploadPartRequest
 		psk,
 	)
 	if err != nil {
-		return NewError(err, logData)
+		return MultipartUploadResponse{}, NewError(err, logData)
 	}
 
 	log.Info(ctx, "chunk accepted", logData)
@@ -75,17 +80,20 @@ func (cli *Client) UploadPartWithPsk(ctx context.Context, req *UploadPartRequest
 		},
 	)
 	if err != nil {
-		return NewError(fmt.Errorf("error listing parts: %w", err), logData)
+		return MultipartUploadResponse{}, NewError(fmt.Errorf("error listing parts: %w", err), logData)
 	}
 
 	// If all parts have been uploaded, we call completeUpload
 	parts := output.Parts
 	if len(parts) == req.TotalChunks {
-		return cli.completeUpload(ctx, uploadID, req, parts)
+		return MultipartUploadResponse{}, cli.completeUpload(ctx, uploadID, req, parts)
 	}
 
 	// Otherwise we don't need to perform any other operation.
-	return nil
+	return MultipartUploadResponse{
+		Etag:             *uploadPartOutput.ETag,
+		AllPartsUploaded: false,
+	}, nil
 }
 
 // doGetOrCreateMultipartUpload atomically gets the UploadId for the specified bucket
