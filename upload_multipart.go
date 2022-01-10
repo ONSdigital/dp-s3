@@ -32,9 +32,8 @@ type MultipartUploadResponse struct {
 }
 
 // UploadPart handles the uploading a file to AWS S3, into the bucket configured for this client
-func (cli *Client) UploadPart(ctx context.Context, req *UploadPartRequest, payload []byte) error {
-	_, err := cli.UploadPartWithPsk(ctx, req, payload, nil)
-	return err
+func (cli *Client) UploadPart(ctx context.Context, req *UploadPartRequest, payload []byte) (MultipartUploadResponse, error) {
+	return cli.UploadPartWithPsk(ctx, req, payload, nil)
 }
 
 // UploadPartWithPsk handles the uploading a file to AWS S3, into the bucket configured for this client, using a user-defined psk
@@ -86,7 +85,10 @@ func (cli *Client) UploadPartWithPsk(ctx context.Context, req *UploadPartRequest
 	// If all parts have been uploaded, we call completeUpload
 	parts := output.Parts
 	if len(parts) == req.TotalChunks {
-		return MultipartUploadResponse{}, cli.completeUpload(ctx, uploadID, req, parts)
+		return MultipartUploadResponse{
+			Etag:             *uploadPartOutput.ETag,
+			AllPartsUploaded: true,
+		}, cli.completeUpload(ctx, uploadID, req, parts)
 	}
 
 	// Otherwise we don't need to perform any other operation.
@@ -237,7 +239,7 @@ func (cli *Client) completeUpload(ctx context.Context, uploadID string, req *Upl
 			Bucket: &cli.bucketName,
 		}
 
-		log.Info(ctx, "attemtping to complete multipart upload", log.Data{"complete": completeInput})
+		log.Info(ctx, "attempting to complete multipart upload", log.Data{"complete": completeInput})
 
 		_, err := cli.sdkClient.CompleteMultipartUpload(completeInput)
 		if err != nil {

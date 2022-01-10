@@ -35,7 +35,7 @@ func TestUploadPart(t *testing.T) {
 
 			// Instantiate and call Upload
 			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, nil)
-			err := cli.UploadPart(context.Background(), &dps3.UploadPartRequest{
+			_, err := cli.UploadPart(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   testKey,
 				Type:        "text/plain",
 				ChunkNumber: 1,
@@ -67,7 +67,7 @@ func TestUploadPart(t *testing.T) {
 
 			// Instantiate and call Upload
 			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, nil)
-			err := cli.UploadPart(context.Background(), &dps3.UploadPartRequest{
+			response, err := cli.UploadPart(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   testKey,
 				Type:        "text/plain",
 				ChunkNumber: 1,
@@ -77,6 +77,8 @@ func TestUploadPart(t *testing.T) {
 
 			// Validate
 			So(err, ShouldBeNil)
+			So(response.Etag, ShouldEqual, "1234567890")
+			So(response.AllPartsUploaded, ShouldBeFalse)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
@@ -110,7 +112,7 @@ func TestUploadPart(t *testing.T) {
 
 			// Instantiate and call Upload
 			s3Cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, nil)
-			err := s3Cli.UploadPart(context.Background(), &dps3.UploadPartRequest{
+			response, err := s3Cli.UploadPart(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   testKey,
 				Type:        "text/plain",
 				ChunkNumber: 1,
@@ -120,6 +122,8 @@ func TestUploadPart(t *testing.T) {
 
 			// Validate
 			So(err, ShouldBeNil)
+			So(response.Etag, ShouldEqual, "1234567890")
+			So(response.AllPartsUploaded, ShouldBeFalse)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.CreateMultipartUploadCalls()), ShouldEqual, 1)
@@ -154,7 +158,7 @@ func TestUploadPart(t *testing.T) {
 
 			// Instantiate and call Upload
 			s3Cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, nil)
-			err := s3Cli.UploadPart(context.Background(), &dps3.UploadPartRequest{
+			response, err := s3Cli.UploadPart(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   testKey,
 				Type:        "text/plain",
 				ChunkNumber: 1,
@@ -164,6 +168,8 @@ func TestUploadPart(t *testing.T) {
 
 			// Validate
 			So(err, ShouldBeNil)
+			So(response.Etag, ShouldEqual, "1234567890")
+			So(response.AllPartsUploaded, ShouldBeTrue)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.CreateMultipartUploadCalls()), ShouldEqual, 1)
@@ -217,6 +223,53 @@ func TestUploadPart(t *testing.T) {
 			So(len(sdkMock.CreateMultipartUploadCalls()), ShouldEqual, 1)
 			So(len(cryptoMock.UploadPartWithPSKCalls()), ShouldEqual, 1)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
+		})
+
+		Convey("UploadWithPsk performs an upload with the provided PSK - all parts uploaded", func() {
+			psk := []byte("test psk")
+
+			// Create S3 client with SDK Mock with empty list of Multipart uploads
+			sdkMock := &mock.S3SDKClientMock{
+				ListMultipartUploadsFunc: func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+					return &s3.ListMultipartUploadsOutput{}, nil
+				},
+				CreateMultipartUploadFunc: func(in1 *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
+					return &s3.CreateMultipartUploadOutput{UploadId: &testUploadId}, nil
+				},
+				ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+					return createListPartsOutput(&expectedPart), nil
+				},
+				CompleteMultipartUploadFunc: func(input *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error) {
+					return &s3.CompleteMultipartUploadOutput{}, nil
+				},
+			}
+
+			cryptoMock := &mock.S3CryptoClientMock{
+				UploadPartWithPSKFunc: func(in1 *s3.UploadPartInput, in2 []byte) (*s3.UploadPartOutput, error) {
+					return &s3.UploadPartOutput{ETag: aws.String("1234567890")}, nil
+				},
+			}
+
+			// Instantiate and call Upload
+			s3Cli := dps3.InstantiateClient(sdkMock, cryptoMock, nil, nil, bucket, ExpectedRegion, nil)
+			response, err := s3Cli.UploadPartWithPsk(context.Background(), &dps3.UploadPartRequest{
+				UploadKey:   testKey,
+				Type:        "text/plain",
+				ChunkNumber: 1,
+				TotalChunks: 1,
+				FileName:    "helloworld",
+			}, payload, psk)
+
+			// Validate
+			So(err, ShouldBeNil)
+			So(response.Etag, ShouldEqual, "1234567890")
+			So(response.AllPartsUploaded, ShouldBeTrue)
+			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
+			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
+			So(len(sdkMock.CreateMultipartUploadCalls()), ShouldEqual, 1)
+			So(len(sdkMock.UploadPartCalls()), ShouldEqual, 0)
+			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
+			So(len(sdkMock.CompleteMultipartUploadCalls()), ShouldEqual, 1)
 		})
 	})
 }
