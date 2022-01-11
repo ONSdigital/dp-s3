@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
 	"testing"
+
+	"github.com/aws/aws-sdk-go/aws"
 
 	dps3 "github.com/ONSdigital/dp-s3/v2"
 	"github.com/ONSdigital/dp-s3/v2/mock"
@@ -58,7 +59,7 @@ func TestUploadPart(t *testing.T) {
 					return createUploads(testUploadId, testKey), nil
 				},
 				UploadPartFunc: func(in1 *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
-					return &s3.UploadPartOutput{ETag: aws.String("1234567890")}, nil
+					return &s3.UploadPartOutput{ETag: aws.String(`"1234567890"`)}, nil
 				},
 				ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
 					return createListPartsOutput(&expectedPart), nil
@@ -77,7 +78,7 @@ func TestUploadPart(t *testing.T) {
 
 			// Validate
 			So(err, ShouldBeNil)
-			So(response.Etag, ShouldEqual, "1234567890")
+			So(response.Etag, ShouldEqual, `"1234567890"`)
 			So(response.AllPartsUploaded, ShouldBeFalse)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
@@ -103,7 +104,7 @@ func TestUploadPart(t *testing.T) {
 					return &s3.CreateMultipartUploadOutput{UploadId: &testUploadId}, nil
 				},
 				UploadPartFunc: func(in1 *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
-					return &s3.UploadPartOutput{ETag: aws.String("1234567890")}, nil
+					return &s3.UploadPartOutput{ETag: aws.String(`"1234567890"`)}, nil
 				},
 				ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
 					return createListPartsOutput(&expectedPart), nil
@@ -122,7 +123,7 @@ func TestUploadPart(t *testing.T) {
 
 			// Validate
 			So(err, ShouldBeNil)
-			So(response.Etag, ShouldEqual, "1234567890")
+			So(response.Etag, ShouldEqual, `"1234567890"`)
 			So(response.AllPartsUploaded, ShouldBeFalse)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
@@ -146,7 +147,7 @@ func TestUploadPart(t *testing.T) {
 					return &s3.CreateMultipartUploadOutput{UploadId: &testUploadId}, nil
 				},
 				UploadPartFunc: func(in1 *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
-					return &s3.UploadPartOutput{ETag: aws.String("1234567890")}, nil
+					return &s3.UploadPartOutput{ETag: aws.String(`"1234567890"`)}, nil
 				},
 				ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
 					return createListPartsOutput(&expectedPart), nil
@@ -168,7 +169,7 @@ func TestUploadPart(t *testing.T) {
 
 			// Validate
 			So(err, ShouldBeNil)
-			So(response.Etag, ShouldEqual, "1234567890")
+			So(response.Etag, ShouldEqual, `"1234567890"`)
 			So(response.AllPartsUploaded, ShouldBeTrue)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
@@ -200,7 +201,7 @@ func TestUploadPart(t *testing.T) {
 
 			cryptoMock := &mock.S3CryptoClientMock{
 				UploadPartWithPSKFunc: func(in1 *s3.UploadPartInput, in2 []byte) (*s3.UploadPartOutput, error) {
-					return &s3.UploadPartOutput{ETag: aws.String("1234567890")}, nil
+					return &s3.UploadPartOutput{ETag: aws.String(`"1234567890"`)}, nil
 				},
 			}
 
@@ -216,7 +217,7 @@ func TestUploadPart(t *testing.T) {
 
 			// Validate
 			So(err, ShouldBeNil)
-			So(response.Etag, ShouldEqual, "1234567890")
+			So(response.Etag, ShouldEqual, `"1234567890"`)
 			So(response.AllPartsUploaded, ShouldBeFalse)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
@@ -246,7 +247,7 @@ func TestUploadPart(t *testing.T) {
 
 			cryptoMock := &mock.S3CryptoClientMock{
 				UploadPartWithPSKFunc: func(in1 *s3.UploadPartInput, in2 []byte) (*s3.UploadPartOutput, error) {
-					return &s3.UploadPartOutput{ETag: aws.String("1234567890")}, nil
+					return &s3.UploadPartOutput{ETag: aws.String(`"1234567890"`)}, nil
 				},
 			}
 
@@ -262,7 +263,7 @@ func TestUploadPart(t *testing.T) {
 
 			// Validate
 			So(err, ShouldBeNil)
-			So(response.Etag, ShouldEqual, "1234567890")
+			So(response.Etag, ShouldEqual, `"1234567890"`)
 			So(response.AllPartsUploaded, ShouldBeTrue)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
