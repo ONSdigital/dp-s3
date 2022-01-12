@@ -1,7 +1,7 @@
 package s3
 
 import (
-	log "github.com/ONSdigital/log.go/v2/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 // S3Error is the s3 package's error type
