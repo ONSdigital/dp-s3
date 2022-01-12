@@ -41,7 +41,7 @@ func (cli *Client) GetFromS3URLWithPSK(rawURL string, style URLStyle, psk []byte
 	return cli.doGetFromS3URL(rawURL, style, psk)
 }
 
-func (cli *Client) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, *int64, *Error) {
+func (cli *Client) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, *int64, error) {
 	logData := log.Data{
 		"raw_url":   rawURL,
 		"url_style": style.String(),
@@ -56,7 +56,7 @@ func (cli *Client) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io
 	// Validate that URL and client bucket names match
 	if s3Url.BucketName != cli.bucketName {
 		logData["bucket_name"] = cli.bucketName
-		return nil, nil, NewError(errors.New("unexpected bucket name in url"), logData)
+		return nil, nil, NewUnexpectedBucketError(errors.New("unexpected bucket name in url"), logData)
 	}
 
 	// Validate that URL and client regions match, if URL provides one

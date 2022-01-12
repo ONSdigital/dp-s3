@@ -80,7 +80,7 @@ func TestGet(t *testing.T) {
 		Convey("GetFromS3URL called with a valid global URL with the wrong bucket returns ErrUnexpectedBucket", func() {
 			wrongBucketGlobalURL := fmt.Sprintf("s3://%s/%s", "wrongBucket", objKey)
 			_, _, err := cli.GetFromS3URL(wrongBucketGlobalURL, dps3.AliasVirtualHostedStyle)
-			So(err, ShouldResemble, dps3.NewError(
+			So(err, ShouldResemble, dps3.NewUnexpectedBucketError(
 				errors.New("unexpected bucket name in url"),
 				log.Data{"bucket_name": bucket,
 					"raw_url":   wrongBucketGlobalURL,

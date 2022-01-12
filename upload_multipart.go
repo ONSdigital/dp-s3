@@ -183,7 +183,7 @@ func (cli *Client) CheckPartUploaded(ctx context.Context, req *UploadPartRequest
 		}
 	}
 	if len(uploadID) == 0 {
-		return false, NewError(errors.New("s3 key not uploaded"), logData)
+		return false, NewErrNotUploaded(errors.New("s3 key not uploaded"), logData)
 	}
 
 	input := &s3.ListPartsInput{
@@ -194,7 +194,7 @@ func (cli *Client) CheckPartUploaded(ctx context.Context, req *UploadPartRequest
 
 	output, err := cli.sdkClient.ListParts(input)
 	if err != nil {
-		return false, NewError(fmt.Errorf("list parts failed: %w", err), logData)
+		return false, NewListPartsError(fmt.Errorf("list parts failed: %w", err), logData)
 	}
 
 	// TODO: If there are more than 1000 parts, they will be paginated, so we would need to call ListParts again with the provided Marker until we have all of them.
@@ -215,7 +215,7 @@ func (cli *Client) CheckPartUploaded(ctx context.Context, req *UploadPartRequest
 		}
 	}
 
-	return false, NewError(errors.New("chunk number not found"), logData)
+	return false, NewChunkNumberNotFound(errors.New("chunk number not found"), logData)
 }
 
 // completeUpload if all parts have been uploaded, we complete the multipart upload.

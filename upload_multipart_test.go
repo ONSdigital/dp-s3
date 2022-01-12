@@ -51,6 +51,7 @@ func TestUploadPart(t *testing.T) {
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, ExistingBucket)
 		})
 
+
 		Convey("If the upload S3 object key can be found in the list of multipart upload, Upload will use it", func() {
 
 			// Create S3 client with SDK Mock with empty list of Multipart uploads
@@ -281,6 +282,7 @@ func TestCheckUpload(t *testing.T) {
 
 		bucket := ExistingBucket
 
+		filename := "helloworld"
 		Convey("An error listing multipart uploads results in CheckUplaod failing with said error", func() {
 
 			// Create S3 client with SDK Mock which fails to ListMultipartUploads
@@ -298,7 +300,7 @@ func TestCheckUpload(t *testing.T) {
 				Type:        "text/plain",
 				ChunkNumber: 1,
 				TotalChunks: 1,
-				FileName:    "helloworld",
+				FileName:    filename,
 			})
 
 			// Validate
@@ -325,11 +327,14 @@ func TestCheckUpload(t *testing.T) {
 				Type:        "text/plain",
 				ChunkNumber: 1,
 				TotalChunks: 1,
-				FileName:    "helloworld",
+				FileName:    filename,
 			})
 
 			// Validate
 			So(ok, ShouldBeFalse)
+			_, isNewNotUploaded := err.(*dps3.ErrNotUploaded)
+			So(isNewNotUploaded, ShouldBeTrue)
+
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(err, ShouldNotBeNil)
@@ -360,11 +365,14 @@ func TestCheckUpload(t *testing.T) {
 				Type:        "text/plain",
 				ChunkNumber: 1,
 				TotalChunks: 1,
-				FileName:    "helloworld",
+				FileName:    filename,
 			})
 
 			// Validate
 			So(ok, ShouldBeFalse)
+			_, isNewErrListParts := err.(*dps3.ErrListParts)
+			So(isNewErrListParts, ShouldBeTrue)
+
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
@@ -394,7 +402,7 @@ func TestCheckUpload(t *testing.T) {
 				Type:        "text/plain",
 				ChunkNumber: 1,
 				TotalChunks: 10,
-				FileName:    "helloworld",
+				FileName:    filename,
 			})
 
 			// Validate
@@ -430,13 +438,15 @@ func TestCheckUpload(t *testing.T) {
 				Type:        "text/plain",
 				ChunkNumber: 1,
 				TotalChunks: 10,
-				FileName:    "helloworld",
+				FileName:    filename,
 			})
 
 			// Validate
 			So(ok, ShouldBeFalse)
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldResemble, "chunk number not found")
+
+			So(err.Error(), ShouldEqual, "chunk number not found")
+			_, isNewChunkNumberNotFound := err.(*dps3.ErrChunkNumberNotFound)
+			So(isNewChunkNumberNotFound, ShouldBeTrue)
 			So(len(sdkMock.ListMultipartUploadsCalls()), ShouldEqual, 1)
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, bucket)
 			So(len(sdkMock.ListPartsCalls()), ShouldEqual, 1)
@@ -470,7 +480,7 @@ func TestCheckUpload(t *testing.T) {
 				Type:        "text/plain",
 				ChunkNumber: 1,
 				TotalChunks: 1,
-				FileName:    "helloworld",
+				FileName:    filename,
 			})
 
 			// Validate
