@@ -41,7 +41,7 @@ func (cli *Client) GetFromS3URLWithPSK(rawURL string, style URLStyle, psk []byte
 	return cli.doGetFromS3URL(rawURL, style, psk)
 }
 
-func (cli *Client) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, *int64, error) {
+func (cli *Client) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, *int64, *Error) {
 	logData := log.Data{
 		"raw_url":   rawURL,
 		"url_style": style.String(),
@@ -62,7 +62,7 @@ func (cli *Client) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io
 	// Validate that URL and client regions match, if URL provides one
 	if len(s3Url.Region) > 0 && s3Url.Region != cli.region {
 		logData["region"] = cli.region
-		return nil, nil, NewError(errors.New("unexpected aws region in url"), logData)
+		return nil, nil, NewUnexpectedRegionError(errors.New("unexpected aws region in url"), logData)
 	}
 
 	if psk == nil {

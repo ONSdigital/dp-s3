@@ -93,7 +93,7 @@ func TestGet(t *testing.T) {
 		Convey("GetFromS3URL called with a valid regional URL with the wrong region returns ErrUnexpectedBucket", func() {
 			wrongRegionRegionalURL := fmt.Sprintf("https://s3-%s.amazonaws.com/%s/%s", "wrongRegion", bucket, objKey)
 			_, _, err := cli.GetFromS3URL(wrongRegionRegionalURL, dps3.PathStyle)
-			So(err, ShouldResemble, dps3.NewError(
+			So(err, ShouldResemble, dps3.NewUnexpectedRegionError(
 				errors.New("unexpected aws region in url"),
 				log.Data{"region": region,
 					"raw_url":   wrongRegionRegionalURL,
