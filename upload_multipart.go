@@ -13,7 +13,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/ONSdigital/log.go/v2/log"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
@@ -27,7 +29,7 @@ type UploadPartRequest struct {
 }
 
 type MultipartUploadResponse struct {
-	Etag string
+	Etag             string
 	AllPartsUploaded bool
 }
 
@@ -243,6 +245,12 @@ func (cli *Client) completeUpload(ctx context.Context, uploadID string, req *Upl
 
 		_, err := cli.sdkClient.CompleteMultipartUpload(completeInput)
 		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				if awsErr.Code() == "EntityTooSmall" {
+					return NewChunkTooSmallError(awsErr, log.Data{"complete": completeInput})
+				}
+			}
+
 			return NewError(fmt.Errorf("error completing multipart upload: %w", err), log.Data{"complete": completeInput})
 		}
 	}

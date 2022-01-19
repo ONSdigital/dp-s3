@@ -134,12 +134,17 @@ result, err := s3cli.UploadWithPSKAndContext(
     psk,
 )
 ```
-
 #### Multipart Upload
 
-You may use the low-level AWS SDK s3 client [multipart upload](./pload_multipart.go) methods
+You may use the low-level AWS SDK s3 client [multipart upload](./upload_multipart.go) methods
 
  and upload objects using `multipart upload`, which is an AWS SDK functionality to perform uploads in chunks. More information [here](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html)
+
+##### Chunk Size
+
+The minimum chunk size allowed in [AWS S3 is 5 MegaBytes (MB)](https://docs.aws.amazon.com/AmazonS3/latest/API/API_CompleteMultipartUpload.html)
+if any chunks (excluding the final chunk) are under this size a ErrChunkTooSmall error will be returned from UploadPart
+and UploadPartWithPsk functions when all chunks have been uploaded.
 
 #### URL
 

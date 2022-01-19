@@ -1,9 +1,11 @@
-//+build integration
+//go:build integration
+// +build integration
 
 package s3_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	dps3 "github.com/ONSdigital/dp-s3/v2"
@@ -71,6 +73,29 @@ func TestMultipartUploadIntegrationTest(t *testing.T) {
 
 				So(err, ShouldBeNil)
 				So(string(buf.Bytes()), ShouldEqual, payload)
+			})
+		})
+
+		Convey("When uploading parts under 5mb", func() {
+			dpClient.UploadPart(context.Background(), &dps3.UploadPartRequest{
+				UploadKey:   file,
+				Type:        fileType,
+				ChunkNumber: 1,
+				TotalChunks: 2,
+				FileName:    file,
+			}, []byte(payload))
+
+			_, err := dpClient.UploadPart(context.Background(), &dps3.UploadPartRequest{
+				UploadKey:   file,
+				Type:        fileType,
+				ChunkNumber: 2,
+				TotalChunks: 2,
+				FileName:    file,
+			}, []byte(payload))
+
+			Convey("Then it should return chunk too small error", func() {
+				_, correctErrType := err.(*dps3.ErrChunkTooSmall)
+				SoMsg(fmt.Sprintf("Expected err type to be ErrChunkTooSmall, got %v", err), correctErrType, ShouldBeTrue)
 			})
 		})
 	})

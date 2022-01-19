@@ -110,3 +110,16 @@ func NewChunkNumberNotFound(err error, logData map[string]interface{}) *ErrChunk
 		},
 	}
 }
+
+func NewChunkTooSmallError(err error, logData map[string]interface{}) *ErrChunkTooSmall {
+	return &ErrChunkTooSmall{
+		S3Error: S3Error{
+			err:     err,
+			logData: logData,
+		},
+	}
+}
+
+type ErrChunkTooSmall struct {
+	S3Error
+}
