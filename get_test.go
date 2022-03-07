@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
+
 	dps3 "github.com/ONSdigital/dp-s3/v2"
 	"github.com/ONSdigital/dp-s3/v2/mock"
 	"github.com/ONSdigital/log.go/v2/log"
@@ -167,6 +169,73 @@ func TestGetWithPSK(t *testing.T) {
 				Bucket: &bucket,
 				Key:    &objKey,
 			})
+		})
+	})
+}
+
+func TestFileExists(t *testing.T) {
+	bucket := "myBucket"
+	region := "eu-north-1"
+	contentLen := int64(123)
+	objKey := "my/object/key"
+
+	Convey("Given an S3 client that returns a valid HeadObject response", t, func() {
+		sdkMock := &mock.S3SDKClientMock{
+			HeadObjectFunc: func(in *s3.HeadObjectInput) (*s3.HeadObjectOutput, error) {
+				return &s3.HeadObjectOutput{
+					ContentLength: &contentLen,
+				}, nil
+			},
+		}
+		cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, region, nil)
+
+		Convey("When the file exists", func() {
+			exists, err := cli.FileExists(objKey)
+			So(err, ShouldBeNil)
+			So(exists, ShouldBeTrue)
+		})
+	})
+
+	Convey("Given an S3 client that returns a Not Found Error", t, func() {
+		sdkMock := &mock.S3SDKClientMock{
+			HeadObjectFunc: func(in *s3.HeadObjectInput) (*s3.HeadObjectOutput, error) {
+				return nil, awserr.New("NotFound", "file was not there", errors.New("testing"))
+			},
+		}
+		cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, region, nil)
+
+		Convey("When the file exists", func() {
+			exists, err := cli.FileExists(objKey)
+			So(err, ShouldBeNil)
+			So(exists, ShouldBeFalse)
+		})
+	})
+
+	Convey("Given an S3 client that returns a unexpected AWS Error", t, func() {
+		sdkMock := &mock.S3SDKClientMock{
+			HeadObjectFunc: func(in *s3.HeadObjectInput) (*s3.HeadObjectOutput, error) {
+				return nil, awserr.New("Unexpected", "broken", errors.New("testing"))
+			},
+		}
+		cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, region, nil)
+
+		Convey("When the file exists", func() {
+			_, err := cli.FileExists(objKey)
+			So(err, ShouldBeError)
+		})
+	})
+
+	Convey("Given an S3 client that returns a unexpected Error", t, func() {
+		sdkMock := &mock.S3SDKClientMock{
+			HeadObjectFunc: func(in *s3.HeadObjectInput) (*s3.HeadObjectOutput, error) {
+				return nil, errors.New("very broken")
+			},
+		}
+		cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, region, nil)
+
+		Convey("When the file exists", func() {
+			_, err := cli.FileExists(objKey)
+			So(err, ShouldBeError)
 		})
 	})
 }

@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
+
 	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -136,4 +138,26 @@ func (cli *Client) Head(key string) (*s3.HeadObjectOutput, error) {
 		)
 	}
 	return result, nil
+}
+
+func (cli *Client) FileExists(key string) (bool, error) {
+	_, err := cli.sdkClient.HeadObject(&s3.HeadObjectInput{
+		Bucket: &cli.bucketName,
+		Key:    &key,
+	})
+
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case "NotFound": // s3.ErrCodeNoSuchKey does not work, aws is missing this error code so we hardwire a string
+				return false, nil
+			default:
+				return false, aerr
+			}
+		}
+
+		return false, err
+	}
+
+	return true, nil
 }
