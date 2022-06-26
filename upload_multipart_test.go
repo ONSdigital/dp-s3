@@ -51,7 +51,6 @@ func TestUploadPart(t *testing.T) {
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, ExistingBucket)
 		})
 
-
 		Convey("If the upload S3 object key can be found in the list of multipart upload, Upload will use it", func() {
 
 			// Create S3 client with SDK Mock with empty list of Multipart uploads

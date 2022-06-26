@@ -11,7 +11,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha1"
+	"crypto/sha1" //nolint:gosec
 	"encoding/hex"
 	"errors"
 	"io"
@@ -538,7 +538,7 @@ func (c *CryptoClient) removeEncryptedKey(input *s3.CompleteMultipartUploadInput
 }
 
 func (c *CryptoClient) encryptKey(psk []byte) (string, error) {
-	hash := sha1.New()
+	hash := sha1.New() //nolint:gosec
 	encryptedKey, err := rsa.EncryptOAEP(hash, rand.Reader, c.publicKey, psk, []byte(""))
 	if err != nil {
 		return "", err
@@ -558,7 +558,7 @@ func (c *CryptoClient) decryptKey(encryptedKeyHex string) ([]byte, error) {
 		return nil, err
 	}
 
-	hash := sha1.New()
+	hash := sha1.New() //nolint:gosec
 	return rsa.DecryptOAEP(hash, rand.Reader, c.privKey, encryptedKey, []byte(""))
 }
 
