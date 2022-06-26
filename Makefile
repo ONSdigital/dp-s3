@@ -13,7 +13,7 @@ build:
 .PHONY: build
 
 lint:
-	exit
+	golangci-lint --deadline=10m --fast --enable=gosec --enable=gocritic --enable=gofmt --enable=gocyclo --enable=bodyclose --enable=gocognit run
 .PHONY: lint
 
 test-integration:
