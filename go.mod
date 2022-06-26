@@ -2,8 +2,6 @@ module github.com/ONSdigital/dp-s3/v2
 
 go 1.18
 
-// replace golang.org/x/crypto => golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
-
 require (
 	github.com/ONSdigital/dp-healthcheck v1.4.0-beta
 	github.com/ONSdigital/log.go/v2 v2.3.0-beta
