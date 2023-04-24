@@ -2,6 +2,11 @@ module github.com/ONSdigital/dp-s3/v2
 
 go 1.17
 
+retract (
+	v2.1.0-beta.2 // Contains retractions only
+	[v2.1.0-beta, v2.1.0-beta.1] // Code never made into main and refers to non-released dependencies
+)
+
 require (
 	github.com/ONSdigital/dp-healthcheck v1.6.1
 	github.com/ONSdigital/log.go/v2 v2.4.1
