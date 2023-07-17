@@ -1,6 +1,6 @@
 module github.com/ONSdigital/dp-s3/v2
 
-go 1.17
+go 1.20
 
 retract (
 	v2.1.0-beta.2 // Contains retractions only
@@ -26,4 +26,5 @@ require (
 	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/smartystreets/assertions v1.13.1 // indirect
 	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/text v0.8.0 // indirect
 )

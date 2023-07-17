@@ -161,3 +161,22 @@ func (cli *Client) FileExists(key string) (bool, error) {
 
 	return true, nil
 }
+
+func (cli *Client) BucketPolicy() (*s3.GetBucketPolicyOutput, error) {
+	result, err := cli.sdkClient.GetBucketPolicy(&s3.GetBucketPolicyInput{
+		Bucket: aws.String(cli.bucketName),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case "NotFound": // s3.ErrCodeNoSuchKey does not work, aws is missing this error code so we hardwire a string
+				return nil, nil
+			default:
+				return nil, aerr
+			}
+		}
+
+		return nil, err
+	}
+	return result, nil
+}
