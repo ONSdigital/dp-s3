@@ -162,9 +162,9 @@ func (cli *Client) FileExists(key string) (bool, error) {
 	return true, nil
 }
 
-func (cli *Client) BucketPolicy() (*s3.GetBucketPolicyOutput, error) {
+func (cli *Client) GetBucketPolicy(BucketName string) (*s3.GetBucketPolicyOutput, error) {
 	result, err := cli.sdkClient.GetBucketPolicy(&s3.GetBucketPolicyInput{
-		Bucket: aws.String(cli.bucketName),
+		Bucket: aws.String(BucketName),
 	})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
@@ -172,7 +172,29 @@ func (cli *Client) BucketPolicy() (*s3.GetBucketPolicyOutput, error) {
 			case "NotFound": // s3.ErrCodeNoSuchKey does not work, aws is missing this error code so we hardwire a string
 				return nil, nil
 			default:
-				return nil, aerr
+				return nil, err
+			}
+		}
+
+		return nil, err
+	}
+	return result, nil
+}
+
+func (cli *Client) PutBucketPolicy(BucketName string, policy string) (*s3.PutBucketPolicyOutput, error) {
+
+	result, err := cli.sdkClient.PutBucketPolicy(&s3.PutBucketPolicyInput{
+		Bucket: aws.String(BucketName),
+		Policy: aws.String(string(policy)),
+	})
+
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case "NotFound": // s3.ErrCodeNoSuchKey does not work, aws is missing this error code so we hardwire a string
+				return nil, nil
+			default:
+				return nil, err
 			}
 		}
 

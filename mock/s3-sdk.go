@@ -43,6 +43,9 @@ var _ v2.S3SDKClient = &S3SDKClientMock{}
 //			ListPartsFunc: func(in *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
 //				panic("mock out the ListParts method")
 //			},
+//			PutBucketPolicyFunc: func(in *s3.PutBucketPolicyInput) (*s3.PutBucketPolicyOutput, error) {
+//				panic("mock out the PutBucketPolicy method")
+//			},
 //			UploadPartFunc: func(in *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
 //				panic("mock out the UploadPart method")
 //			},
@@ -76,6 +79,9 @@ type S3SDKClientMock struct {
 
 	// ListPartsFunc mocks the ListParts method.
 	ListPartsFunc func(in *s3.ListPartsInput) (*s3.ListPartsOutput, error)
+
+	// PutBucketPolicyFunc mocks the PutBucketPolicy method.
+	PutBucketPolicyFunc func(in *s3.PutBucketPolicyInput) (*s3.PutBucketPolicyOutput, error)
 
 	// UploadPartFunc mocks the UploadPart method.
 	UploadPartFunc func(in *s3.UploadPartInput) (*s3.UploadPartOutput, error)
@@ -122,6 +128,11 @@ type S3SDKClientMock struct {
 			// In is the in argument value.
 			In *s3.ListPartsInput
 		}
+		// PutBucketPolicy holds details about calls to the PutBucketPolicy method.
+		PutBucketPolicy []struct {
+			// In is the in argument value.
+			In *s3.PutBucketPolicyInput
+		}
 		// UploadPart holds details about calls to the UploadPart method.
 		UploadPart []struct {
 			// In is the in argument value.
@@ -136,6 +147,7 @@ type S3SDKClientMock struct {
 	lockHeadObject              sync.RWMutex
 	lockListMultipartUploads    sync.RWMutex
 	lockListParts               sync.RWMutex
+	lockPutBucketPolicy         sync.RWMutex
 	lockUploadPart              sync.RWMutex
 }
 
@@ -392,6 +404,38 @@ func (mock *S3SDKClientMock) ListPartsCalls() []struct {
 	mock.lockListParts.RLock()
 	calls = mock.calls.ListParts
 	mock.lockListParts.RUnlock()
+	return calls
+}
+
+// PutBucketPolicy calls PutBucketPolicyFunc.
+func (mock *S3SDKClientMock) PutBucketPolicy(in *s3.PutBucketPolicyInput) (*s3.PutBucketPolicyOutput, error) {
+	if mock.PutBucketPolicyFunc == nil {
+		panic("S3SDKClientMock.PutBucketPolicyFunc: method is nil but S3SDKClient.PutBucketPolicy was just called")
+	}
+	callInfo := struct {
+		In *s3.PutBucketPolicyInput
+	}{
+		In: in,
+	}
+	mock.lockPutBucketPolicy.Lock()
+	mock.calls.PutBucketPolicy = append(mock.calls.PutBucketPolicy, callInfo)
+	mock.lockPutBucketPolicy.Unlock()
+	return mock.PutBucketPolicyFunc(in)
+}
+
+// PutBucketPolicyCalls gets all the calls that were made to PutBucketPolicy.
+// Check the length with:
+//
+//	len(mockedS3SDKClient.PutBucketPolicyCalls())
+func (mock *S3SDKClientMock) PutBucketPolicyCalls() []struct {
+	In *s3.PutBucketPolicyInput
+} {
+	var calls []struct {
+		In *s3.PutBucketPolicyInput
+	}
+	mock.lockPutBucketPolicy.RLock()
+	calls = mock.calls.PutBucketPolicy
+	mock.lockPutBucketPolicy.RUnlock()
 	return calls
 }
 
