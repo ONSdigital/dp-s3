@@ -40,6 +40,9 @@ var _ v2.S3SDKClient = &S3SDKClientMock{}
 //			ListMultipartUploadsFunc: func(in *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
 //				panic("mock out the ListMultipartUploads method")
 //			},
+//			ListObjectsFunc: func(in *s3.ListObjectsInput) (*s3.ListObjectsOutput, error) {
+//				panic("mock out the ListObjects method")
+//			},
 //			ListPartsFunc: func(in *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
 //				panic("mock out the ListParts method")
 //			},
@@ -76,6 +79,9 @@ type S3SDKClientMock struct {
 
 	// ListMultipartUploadsFunc mocks the ListMultipartUploads method.
 	ListMultipartUploadsFunc func(in *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error)
+
+	// ListObjectsFunc mocks the ListObjects method.
+	ListObjectsFunc func(in *s3.ListObjectsInput) (*s3.ListObjectsOutput, error)
 
 	// ListPartsFunc mocks the ListParts method.
 	ListPartsFunc func(in *s3.ListPartsInput) (*s3.ListPartsOutput, error)
@@ -123,6 +129,11 @@ type S3SDKClientMock struct {
 			// In is the in argument value.
 			In *s3.ListMultipartUploadsInput
 		}
+		// ListObjects holds details about calls to the ListObjects method.
+		ListObjects []struct {
+			// In is the in argument value.
+			In *s3.ListObjectsInput
+		}
 		// ListParts holds details about calls to the ListParts method.
 		ListParts []struct {
 			// In is the in argument value.
@@ -146,6 +157,7 @@ type S3SDKClientMock struct {
 	lockHeadBucket              sync.RWMutex
 	lockHeadObject              sync.RWMutex
 	lockListMultipartUploads    sync.RWMutex
+	lockListObjects             sync.RWMutex
 	lockListParts               sync.RWMutex
 	lockPutBucketPolicy         sync.RWMutex
 	lockUploadPart              sync.RWMutex
@@ -372,6 +384,38 @@ func (mock *S3SDKClientMock) ListMultipartUploadsCalls() []struct {
 	mock.lockListMultipartUploads.RLock()
 	calls = mock.calls.ListMultipartUploads
 	mock.lockListMultipartUploads.RUnlock()
+	return calls
+}
+
+// ListObjects calls ListObjectsFunc.
+func (mock *S3SDKClientMock) ListObjects(in *s3.ListObjectsInput) (*s3.ListObjectsOutput, error) {
+	if mock.ListObjectsFunc == nil {
+		panic("S3SDKClientMock.ListObjectsFunc: method is nil but S3SDKClient.ListObjects was just called")
+	}
+	callInfo := struct {
+		In *s3.ListObjectsInput
+	}{
+		In: in,
+	}
+	mock.lockListObjects.Lock()
+	mock.calls.ListObjects = append(mock.calls.ListObjects, callInfo)
+	mock.lockListObjects.Unlock()
+	return mock.ListObjectsFunc(in)
+}
+
+// ListObjectsCalls gets all the calls that were made to ListObjects.
+// Check the length with:
+//
+//	len(mockedS3SDKClient.ListObjectsCalls())
+func (mock *S3SDKClientMock) ListObjectsCalls() []struct {
+	In *s3.ListObjectsInput
+} {
+	var calls []struct {
+		In *s3.ListObjectsInput
+	}
+	mock.lockListObjects.RLock()
+	calls = mock.calls.ListObjects
+	mock.lockListObjects.RUnlock()
 	return calls
 }
 

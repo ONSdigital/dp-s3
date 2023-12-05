@@ -24,6 +24,7 @@ type S3SDKClient interface {
 	GetObject(in *s3.GetObjectInput) (out *s3.GetObjectOutput, err error)
 	GetBucketPolicy(in *s3.GetBucketPolicyInput) (out *s3.GetBucketPolicyOutput, err error)
 	PutBucketPolicy(in *s3.PutBucketPolicyInput) (out *s3.PutBucketPolicyOutput, err error)
+	ListObjects(in *s3.ListObjectsInput) (out *s3.ListObjectsOutput, err error)
 }
 
 // S3CryptoClient represents the cryptoclient with methods required to upload parts with encryption
