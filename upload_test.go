@@ -88,7 +88,7 @@ func TestUploadWithContext(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(sdkUploaderMock.UploadWithContextCalls()), ShouldEqual, 1)
 			So(*sdkUploaderMock.UploadWithContextCalls()[0].In.Bucket, ShouldEqual, testBucket)
-			So(sdkUploaderMock.UploadWithContextCalls()[0].Ctx, ShouldEqual, ctx)
+			So(sdkUploaderMock.UploadWithContextCalls()[0].Ctx, ShouldResemble, ctx)
 		})
 
 		Convey("Calling UploadWithContext with nil context returns the expected error", func() {
@@ -137,7 +137,7 @@ func TestUploadWithContext(t *testing.T) {
 			))
 			So(len(sdkUploaderMock.UploadWithContextCalls()), ShouldEqual, 1)
 			So(*sdkUploaderMock.UploadWithContextCalls()[0].In.Bucket, ShouldEqual, testBucket)
-			So(sdkUploaderMock.UploadWithContextCalls()[0].Ctx, ShouldEqual, ctx)
+			So(sdkUploaderMock.UploadWithContextCalls()[0].Ctx, ShouldResemble, ctx)
 		})
 	})
 }
@@ -229,7 +229,7 @@ func TestUploadWithPSKAndContext(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(cryptoUploaderMock.UploadWithPSKCalls()), ShouldEqual, 1)
 			So(*cryptoUploaderMock.UploadWithPSKCalls()[0].In.Bucket, ShouldEqual, testBucket)
-			So(cryptoUploaderMock.UploadWithPSKCalls()[0].Ctx, ShouldEqual, ctx)
+			So(cryptoUploaderMock.UploadWithPSKCalls()[0].Ctx, ShouldResemble, ctx)
 		})
 
 		Convey("Calling UploadWithPSKAndContext with nil context returns the expected error", func() {
@@ -291,7 +291,7 @@ func TestUploadWithPSKAndContext(t *testing.T) {
 			))
 			So(len(cryptoUploaderMock.UploadWithPSKCalls()), ShouldEqual, 1)
 			So(*cryptoUploaderMock.UploadWithPSKCalls()[0].In.Bucket, ShouldEqual, testBucket)
-			So(cryptoUploaderMock.UploadWithPSKCalls()[0].Ctx, ShouldEqual, ctx)
+			So(cryptoUploaderMock.UploadWithPSKCalls()[0].Ctx, ShouldResemble, ctx)
 		})
 	})
 }
