@@ -361,3 +361,40 @@ func TestPutBucketPolicy(t *testing.T) {
 		})
 	})
 }
+
+func TestListObjects(t *testing.T) {
+	bucket := "myBucket"
+	region := "eu-north-1"
+	expectedReturn := &s3.ListObjectsOutput{}
+
+	Convey("Given an S3 client that returns a valid ListObjects response", t, func() {
+		sdkMock := &mock.S3SDKClientMock{
+			ListObjectsFunc: func(in *s3.ListObjectsInput) (*s3.ListObjectsOutput, error) {
+				return &s3.ListObjectsOutput{}, nil
+			},
+		}
+		cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, region, nil)
+
+		Convey("ListObjects returns the expected output returned by the sdk client without error", func() {
+			out, err := cli.ListObjects(bucket)
+			So(err, ShouldBeNil)
+			So(out, ShouldResemble, expectedReturn)
+		})
+	})
+
+	Convey("Given an S3 client that returns an error on a ListObjects request", t, func() {
+		errBucket := errors.New("NotFound")
+		sdkMock := &mock.S3SDKClientMock{
+			ListObjectsFunc: func(in *s3.ListObjectsInput) (*s3.ListObjectsOutput, error) {
+				return nil, errBucket
+			},
+		}
+		s3Cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, region, nil)
+
+		Convey("BucketPolicy returns the expected error", func() {
+			_, err := s3Cli.ListObjects(bucket)
+			So(err, ShouldResemble, errBucket)
+		})
+	})
+
+}

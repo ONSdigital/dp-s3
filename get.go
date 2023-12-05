@@ -202,3 +202,24 @@ func (cli *Client) PutBucketPolicy(BucketName string, policy string) (*s3.PutBuc
 	}
 	return result, nil
 }
+
+func (cli *Client) ListObjects(BucketName string) (*s3.ListObjectsOutput, error) {
+
+	result, err := cli.sdkClient.ListObjects(&s3.ListObjectsInput{
+		Bucket: aws.String(BucketName),
+	})
+
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case "NotFound": // s3.ErrCodeNoSuchKey does not work, aws is missing this error code so we hardwire a string
+				return nil, nil
+			default:
+				return nil, err
+			}
+		}
+
+		return nil, err
+	}
+	return result, nil
+}
