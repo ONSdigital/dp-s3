@@ -393,6 +393,7 @@ func TestListObjects(t *testing.T) {
 
 		Convey("BucketPolicy returns the expected error", func() {
 			_, err := s3Cli.ListObjects(bucket)
+
 			So(err, ShouldResemble, errBucket)
 		})
 	})

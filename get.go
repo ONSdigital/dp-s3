@@ -172,7 +172,7 @@ func (cli *Client) GetBucketPolicy(BucketName string) (*s3.GetBucketPolicyOutput
 			case "NotFound": // s3.ErrCodeNoSuchKey does not work, aws is missing this error code so we hardwire a string
 				return nil, nil
 			default:
-				return nil, err
+				return nil, aerr
 			}
 		}
 
@@ -194,7 +194,7 @@ func (cli *Client) PutBucketPolicy(BucketName string, policy string) (*s3.PutBuc
 			case "NotFound": // s3.ErrCodeNoSuchKey does not work, aws is missing this error code so we hardwire a string
 				return nil, nil
 			default:
-				return nil, err
+				return nil, aerr
 			}
 		}
 
@@ -215,7 +215,7 @@ func (cli *Client) ListObjects(BucketName string) (*s3.ListObjectsOutput, error)
 			case "NotFound": // s3.ErrCodeNoSuchKey does not work, aws is missing this error code so we hardwire a string
 				return nil, nil
 			default:
-				return nil, err
+				return nil, aerr
 			}
 		}
 
