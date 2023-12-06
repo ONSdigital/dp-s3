@@ -284,20 +284,16 @@ func TestHead(t *testing.T) {
 		})
 	})
 }
+
 func TestGetBucketPolicy(t *testing.T) {
 	bucket := "myBucket"
 	region := "eu-north-1"
-	policy := "policy"
-	expectedOut := &s3.GetBucketPolicyOutput{
-		Policy: &policy,
-	}
+	expectedReturn := &s3.GetBucketPolicyOutput{}
 
 	Convey("Given an S3 client that returns a valid BucketPolicy response", t, func() {
 		sdkMock := &mock.S3SDKClientMock{
 			GetBucketPolicyFunc: func(in *s3.GetBucketPolicyInput) (*s3.GetBucketPolicyOutput, error) {
-				return &s3.GetBucketPolicyOutput{
-					Policy: &policy,
-				}, nil
+				return &s3.GetBucketPolicyOutput{}, nil
 			},
 		}
 		cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, region, nil)
@@ -305,22 +301,44 @@ func TestGetBucketPolicy(t *testing.T) {
 		Convey("GetBucketPolicy returns the expected output returned by the sdk client without error", func() {
 			out, err := cli.GetBucketPolicy(bucket)
 			So(err, ShouldBeNil)
-			So(out, ShouldResemble, expectedOut)
+			So(out, ShouldResemble, expectedReturn)
 		})
 	})
 
 	Convey("Given an S3 client that returns an error on a BucketPolicy request", t, func() {
-		errPolicy := errors.New("Policy error")
+		errBucket := errors.New("NoSuchBucket")
 		sdkMock := &mock.S3SDKClientMock{
 			GetBucketPolicyFunc: func(in *s3.GetBucketPolicyInput) (*s3.GetBucketPolicyOutput, error) {
-				return nil, errPolicy
+				return nil, errBucket
 			},
 		}
 		s3Cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, region, nil)
 
 		Convey("BucketPolicy returns the expected error", func() {
 			_, err := s3Cli.GetBucketPolicy(bucket)
-			So(err, ShouldResemble, errPolicy)
+			So(err, ShouldResemble, errBucket)
+			aerr, ok := err.(awserr.Error)
+			So(ok, ShouldBeFalse)
+			So(aerr, ShouldBeNil)
+
+		})
+	})
+	Convey("Given an S3 client that returns an  aws error on a BucketPolicy request", t, func() {
+		errBucket := awserr.NewBatchError("404", "NoSuchBucket", []error{})
+		sdkMock := &mock.S3SDKClientMock{
+			GetBucketPolicyFunc: func(in *s3.GetBucketPolicyInput) (*s3.GetBucketPolicyOutput, error) {
+				return nil, errBucket
+			},
+		}
+		s3Cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, region, nil)
+
+		Convey("BucketPolicy returns the expected error", func() {
+			_, err := s3Cli.GetBucketPolicy(bucket)
+			So(err, ShouldResemble, errBucket)
+			aerr, ok := err.(awserr.Error)
+			So(ok, ShouldBeTrue)
+			So(aerr, ShouldNotBeEmpty)
+
 		})
 	})
 }
@@ -347,17 +365,39 @@ func TestPutBucketPolicy(t *testing.T) {
 	})
 
 	Convey("Given an S3 client that returns an error on a BucketPolicy request", t, func() {
-		errPolicy := errors.New("Policy error")
+		errBucket := errors.New("NoSuchBucket")
 		sdkMock := &mock.S3SDKClientMock{
 			PutBucketPolicyFunc: func(in *s3.PutBucketPolicyInput) (*s3.PutBucketPolicyOutput, error) {
-				return nil, errPolicy
+				return nil, errBucket
 			},
 		}
 		s3Cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, region, nil)
 
 		Convey("BucketPolicy returns the expected error", func() {
 			_, err := s3Cli.PutBucketPolicy(bucket, policy)
-			So(err, ShouldResemble, errPolicy)
+			So(err, ShouldResemble, errBucket)
+			aerr, ok := err.(awserr.Error)
+			So(ok, ShouldBeFalse)
+			So(aerr, ShouldBeNil)
+
+		})
+	})
+	Convey("Given an S3 client that returns an  aws error on a BucketPolicy request", t, func() {
+		errBucket := awserr.NewBatchError("404", "NoSuchBucket", []error{})
+		sdkMock := &mock.S3SDKClientMock{
+			PutBucketPolicyFunc: func(in *s3.PutBucketPolicyInput) (*s3.PutBucketPolicyOutput, error) {
+				return nil, errBucket
+			},
+		}
+		s3Cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, region, nil)
+
+		Convey("BucketPolicy returns the expected error", func() {
+			_, err := s3Cli.PutBucketPolicy(bucket, policy)
+			So(err, ShouldResemble, errBucket)
+			aerr, ok := err.(awserr.Error)
+			So(ok, ShouldBeTrue)
+			So(aerr, ShouldNotBeEmpty)
+
 		})
 	})
 }
@@ -382,8 +422,8 @@ func TestListObjects(t *testing.T) {
 		})
 	})
 
-	Convey("Given an S3 client that returns an error on a ListObjects request", t, func() {
-		errBucket := errors.New("NotFound")
+	Convey("Given an S3 client that returns an non aws error on a ListObjects request", t, func() {
+		errBucket := errors.New("NoSuchBucket")
 		sdkMock := &mock.S3SDKClientMock{
 			ListObjectsFunc: func(in *s3.ListObjectsInput) (*s3.ListObjectsOutput, error) {
 				return nil, errBucket
@@ -393,9 +433,30 @@ func TestListObjects(t *testing.T) {
 
 		Convey("BucketPolicy returns the expected error", func() {
 			_, err := s3Cli.ListObjects(bucket)
-
 			So(err, ShouldResemble, errBucket)
+			aerr, ok := err.(awserr.Error)
+			So(ok, ShouldBeFalse)
+			So(aerr, ShouldBeNil)
+
 		})
 	})
 
+	Convey("Given an S3 client that returns an  aws error on a ListObjects request", t, func() {
+		errBucket := awserr.NewBatchError("404", "NoSuchBucket", []error{})
+		sdkMock := &mock.S3SDKClientMock{
+			ListObjectsFunc: func(in *s3.ListObjectsInput) (*s3.ListObjectsOutput, error) {
+				return nil, errBucket
+			},
+		}
+		s3Cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, region, nil)
+
+		Convey("BucketPolicy returns the expected error", func() {
+			_, err := s3Cli.ListObjects(bucket)
+			So(err, ShouldResemble, errBucket)
+			aerr, ok := err.(awserr.Error)
+			So(ok, ShouldBeTrue)
+			So(aerr, ShouldNotBeEmpty)
+
+		})
+	})
 }

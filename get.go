@@ -211,14 +211,8 @@ func (cli *Client) ListObjects(BucketName string) (*s3.ListObjectsOutput, error)
 
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case "NotFound": // s3.ErrCodeNoSuchKey does not work, aws is missing this error code so we hardwire a string
-				return nil, nil
-			default:
-				return nil, aerr
-			}
+			return nil, aerr
 		}
-
 		return nil, err
 	}
 	return result, nil
