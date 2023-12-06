@@ -371,17 +371,17 @@ func TestPutBucketPolicy(t *testing.T) {
 	})
 
 	Convey("Given an S3 client that returns an error on a BucketPolicy request", t, func() {
-		errBucket := errors.New("NoSuchBucket")
+		errPolicy := errors.New("NoSuchBucket")
 		sdkMock := &mock.S3SDKClientMock{
 			PutBucketPolicyFunc: func(in *s3.PutBucketPolicyInput) (*s3.PutBucketPolicyOutput, error) {
-				return nil, errBucket
+				return nil, errPolicy
 			},
 		}
 		s3Cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, region, nil)
 
 		Convey("BucketPolicy returns the expected error", func() {
 			_, err := s3Cli.PutBucketPolicy(bucket, policy)
-			So(err, ShouldResemble, errBucket)
+			So(err, ShouldResemble, errPolicy)
 			aerr, ok := err.(awserr.Error)
 			So(ok, ShouldBeFalse)
 			So(aerr, ShouldBeNil)
