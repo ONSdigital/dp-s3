@@ -1,5 +1,5 @@
-dp-s3
-================
+# dp-s3
+
 Client to interact with AWS S3
 
 ## Getting started
@@ -18,12 +18,12 @@ region=eu-west-1
 Or export the values as environmental variables:
 
 ```sh
+export AWS_REGION=eu-west-1
 export AWS_ACCESS_KEY_ID=<id>
 export AWS_SECRET_ACCESS_KEY=<secret>
 ```
 
-More information in [Amazon documentation](https://docs.aws.amazon.com/cli/latest/userguide//cli-chap-configure.html)
-
+For information on specifying the region and credentials see the [Amazon documentation](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html)
 
 ### Setting up IAM policy
 
@@ -49,23 +49,39 @@ There are 2 available constructors:
 
 - Constructor without AWS session (will create a new session):
 
-```golang
-import dps3 "github.com/ONSdigital/dp-s3/v2"
+  ```golang
+  import dps3 "github.com/ONSdigital/dp-s3/v2"
 
-s3cli := dps3.NewClient(region, bucket)
-```
+  s3cli, err := dps3.NewClient(region, bucket)
+  ```
 
 - Constructor with AWS session (will reuse the provided session):
 
-```golang
-import dps3 "github.com/ONSdigital/dp-s3/v2"
+  ```golang
+  import dps3 "github.com/ONSdigital/dp-s3/v2"
 
-s3cli := dps3.NewClientWithSession(bucket, awsSession)
-```
+  s3cli, err := dps3.NewClientWithSession(bucket, awsSession)
+  ```
 
-It is recommended to create a single AWS session in your service and reuse it if you need other clients. The client offers a session getter: `s3cli.Session()`
+  It is recommended to create a single AWS session in your service and reuse it if you need other clients. The client offers a session getter: `s3cli.Session()`
 
-A bucket name getter is also offered for convenience: `s3cli.BucketName()`
+  A bucket name getter is also offered for convenience: `s3cli.BucketName()`
+
+- Constructor enabling local testing using tools such as minio or localstack:
+
+  ```golang
+  import dps3 "github.com/ONSdigital/dp-s3/v2"
+
+  s3cli := dps3.NewClientWithEndpoint(region, bucket, endpoint)
+  ```
+
+  The session will contain the endpoint, so subsequent clients can be created using:
+
+  ```golang
+  dps3.NewClientWithSession(bucket, s3cli.Session())
+  ```
+
+  If the `endpoint` is empty then the client will use the live AWS default endpoints.
 
 #### Get
 
@@ -101,39 +117,40 @@ Functions that have the suffix `WithPSK` allow you to provide a psk for encrypti
 
 - Upload an un-encrypted object to S3
 
-```golang
-result, err := s3cli.Upload(
-    &s3manager.UploadInput{
-		Body:   file.Reader,
-		Key:    &filename,
-	},
-)
-```
+  ```golang
+  result, err := s3cli.Upload(
+      &s3manager.UploadInput{
+          Body:   file.Reader,
+          Key:    &filename,
+      },
+  )
+  ```
 
 - Upload an encrypted object to S3, using a psk:
 
-```golang
-result, err := s3cli.UploadWithPSK(
-    &s3manager.UploadInput{
-		Body:   file.Reader,
-		Key:    &filename,
-	},
-    psk,
-)
-```
+  ```golang
+  result, err := s3cli.UploadWithPSK(
+      &s3manager.UploadInput{
+          Body:   file.Reader,
+          Key:    &filename,
+      },
+      psk,
+  )
+  ```
 
 - Upload an encrypted object to S3, passing a context:
 
-```golang
-result, err := s3cli.UploadWithPSKAndContext(
-    ctx,
-    &s3manager.UploadInput{
-		Body:   file.Reader,
-		Key:    &filename,
-	},
-    psk,
-)
-```
+  ```golang
+  result, err := s3cli.UploadWithPSKAndContext(
+      ctx,
+      &s3manager.UploadInput{
+          Body:   file.Reader,
+          Key:    &filename,
+      },
+      psk,
+  )
+  ```
+
 #### Multipart Upload
 
 You may use the low-level AWS SDK s3 client [multipart upload](./upload_multipart.go) methods
@@ -206,6 +223,6 @@ See [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ## License
 
-Copyright © 2020, Office for National Statistics (https://www.ons.gov.uk)
+Copyright © Crown Copywrite ([Office for National Statistics](https://www.ons.gov.uk))
 
 Released under MIT license, see [LICENSE](LICENSE.md) for details.
