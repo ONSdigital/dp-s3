@@ -1,21 +1,22 @@
 SHELL=bash
 
+.PHONY: test
 test:
 	go test -count=1 -race -cover ./...
-.PHONY: test
 
+.PHONY: audit
 audit:
 	go list -json -m all | nancy sleuth --exclude-vulnerability-file ./.nancy-ignore
-.PHONY: audit
 
+.PHONY: build
 build:
 	go build ./...
-.PHONY: build
 
-lint:
-	exit
 .PHONY: lint
+lint:
+	golangci-lint run ./...
 
+.PHONY: test-integration
 test-integration:
 	docker-compose down
 	docker-compose up -d
