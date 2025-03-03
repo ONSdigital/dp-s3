@@ -9,15 +9,15 @@
 package s3
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
-
 	"github.com/ONSdigital/log.go/v2/log"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 // GetFromS3URL returns an io.ReadCloser instance and the content length (size in bytes) for the given S3 URL,
@@ -27,8 +27,8 @@ import (
 //
 // The caller is responsible for closing the returned ReadCloser.
 // For example, it may be closed in a defer statement: defer r.Close()
-func (cli *Client) GetFromS3URL(rawURL string, style URLStyle) (io.ReadCloser, *int64, error) {
-	return cli.doGetFromS3URL(rawURL, style, nil)
+func (cli *Client) GetFromS3URL(ctx context.Context, rawURL string, style URLStyle) (io.ReadCloser, *int64, error) {
+	return cli.doGetFromS3URL(ctx, rawURL, style, nil)
 
 }
 
@@ -39,11 +39,11 @@ func (cli *Client) GetFromS3URL(rawURL string, style URLStyle) (io.ReadCloser, *
 //
 // The caller is responsible for closing the returned ReadCloser.
 // For example, it may be closed in a defer statement: defer r.Close()
-func (cli *Client) GetFromS3URLWithPSK(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, *int64, error) {
-	return cli.doGetFromS3URL(rawURL, style, psk)
+func (cli *Client) GetFromS3URLWithPSK(ctx context.Context, rawURL string, style URLStyle, psk []byte) (io.ReadCloser, *int64, error) {
+	return cli.doGetFromS3URL(ctx, rawURL, style, psk)
 }
 
-func (cli *Client) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io.ReadCloser, *int64, error) {
+func (cli *Client) doGetFromS3URL(ctx context.Context, rawURL string, style URLStyle, psk []byte) (io.ReadCloser, *int64, error) {
 	logData := log.Data{
 		"raw_url":   rawURL,
 		"url_style": style.String(),
@@ -68,9 +68,9 @@ func (cli *Client) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io
 	}
 
 	if psk == nil {
-		return cli.Get(s3Url.Key)
+		return cli.Get(ctx, s3Url.Key)
 	}
-	return cli.GetWithPSK(s3Url.Key, psk)
+	return cli.GetWithPSK(ctx, s3Url.Key, psk)
 }
 
 // Get returns an io.ReadCloser instance for the given path (inside the bucket configured for this client)
@@ -79,14 +79,14 @@ func (cli *Client) doGetFromS3URL(rawURL string, style URLStyle, psk []byte) (io
 //
 // The caller is responsible for closing the returned ReadCloser.
 // For example, it may be closed in a defer statement: defer r.Close()
-func (cli *Client) Get(key string) (io.ReadCloser, *int64, error) {
+func (cli *Client) Get(ctx context.Context, key string) (io.ReadCloser, *int64, error) {
 
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(cli.bucketName),
 		Key:    aws.String(key),
 	}
 
-	result, err := cli.sdkClient.GetObject(input)
+	result, err := cli.sdkClient.GetObject(ctx, input)
 	if err != nil {
 		return nil, nil, NewError(fmt.Errorf("error getting object from s3: %w", err), log.Data{
 			"bucket_name": cli.bucketName,
@@ -104,13 +104,13 @@ func (cli *Client) Get(key string) (io.ReadCloser, *int64, error) {
 //
 // The caller is responsible for closing the returned ReadCloser.
 // For example, it may be closed in a defer statement: defer r.Close()
-func (cli *Client) GetWithPSK(key string, psk []byte) (io.ReadCloser, *int64, error) {
+func (cli *Client) GetWithPSK(ctx context.Context, key string, psk []byte) (io.ReadCloser, *int64, error) {
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(cli.bucketName),
 		Key:    aws.String(key),
 	}
 
-	result, err := cli.cryptoClient.GetObjectWithPSK(input, psk)
+	result, err := cli.cryptoClient.GetObjectWithPSK(ctx, input, psk)
 	if err != nil {
 		return nil, nil, NewError(fmt.Errorf("error getting object from s3: %w", err), log.Data{
 			"bucket_name": cli.bucketName,
@@ -123,8 +123,8 @@ func (cli *Client) GetWithPSK(key string, psk []byte) (io.ReadCloser, *int64, er
 }
 
 // Head returns a HeadObjectOutput containing an object metadata obtained from ah HTTP HEAD call
-func (cli *Client) Head(key string) (*s3.HeadObjectOutput, error) {
-	result, err := cli.sdkClient.HeadObject(&s3.HeadObjectInput{
+func (cli *Client) Head(ctx context.Context, key string) (*s3.HeadObjectOutput, error) {
+	result, err := cli.sdkClient.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: &cli.bucketName,
 		Key:    &key,
 	})
@@ -140,79 +140,55 @@ func (cli *Client) Head(key string) (*s3.HeadObjectOutput, error) {
 	return result, nil
 }
 
-func (cli *Client) FileExists(key string) (bool, error) {
-	_, err := cli.sdkClient.HeadObject(&s3.HeadObjectInput{
+func (cli *Client) FileExists(ctx context.Context, key string) (bool, error) {
+	_, err := cli.sdkClient.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: &cli.bucketName,
 		Key:    &key,
 	})
-
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case "NotFound": // s3.ErrCodeNoSuchKey does not work, aws is missing this error code so we hardwire a string
-				return false, nil
-			default:
-				return false, aerr
-			}
+		var notFoundErr *types.NotFound
+		if errors.As(err, &notFoundErr) {
+			return false, nil
 		}
-
 		return false, err
 	}
-
 	return true, nil
 }
 
-func (cli *Client) GetBucketPolicy(BucketName string) (*s3.GetBucketPolicyOutput, error) {
-	result, err := cli.sdkClient.GetBucketPolicy(&s3.GetBucketPolicyInput{
+func (cli *Client) GetBucketPolicy(ctx context.Context, BucketName string) (*s3.GetBucketPolicyOutput, error) {
+	result, err := cli.sdkClient.GetBucketPolicy(ctx, &s3.GetBucketPolicyInput{
 		Bucket: aws.String(BucketName),
 	})
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case "NotFound": // s3.ErrCodeNoSuchKey does not work, aws is missing this error code so we hardwire a string
-				return nil, nil
-			default:
-				return nil, aerr
-			}
+		var notFoundErr *types.NotFound
+		if errors.As(err, &notFoundErr) {
+			return nil, nil
 		}
-
 		return nil, err
 	}
 	return result, nil
 }
 
-func (cli *Client) PutBucketPolicy(BucketName string, policy string) (*s3.PutBucketPolicyOutput, error) {
-
-	result, err := cli.sdkClient.PutBucketPolicy(&s3.PutBucketPolicyInput{
+func (cli *Client) PutBucketPolicy(ctx context.Context, BucketName string, policy string) (*s3.PutBucketPolicyOutput, error) {
+	result, err := cli.sdkClient.PutBucketPolicy(ctx, &s3.PutBucketPolicyInput{
 		Bucket: aws.String(BucketName),
 		Policy: aws.String(string(policy)),
 	})
-
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case "NotFound": // s3.ErrCodeNoSuchKey does not work, aws is missing this error code so we hardwire a string
-				return nil, nil
-			default:
-				return nil, aerr
-			}
+		var notFoundErr *types.NotFound
+		if errors.As(err, &notFoundErr) {
+			return nil, nil
 		}
-
 		return nil, err
 	}
 	return result, nil
 }
 
-func (cli *Client) ListObjects(BucketName string) (*s3.ListObjectsOutput, error) {
-
-	result, err := cli.sdkClient.ListObjects(&s3.ListObjectsInput{
+func (cli *Client) ListObjects(ctx context.Context, BucketName string) (*s3.ListObjectsOutput, error) {
+	result, err := cli.sdkClient.ListObjects(ctx, &s3.ListObjectsInput{
 		Bucket: aws.String(BucketName),
 	})
-
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			return nil, aerr
-		}
 		return nil, err
 	}
 	return result, nil

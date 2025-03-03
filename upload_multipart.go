@@ -15,15 +15,15 @@ import (
 	"fmt"
 
 	"github.com/ONSdigital/log.go/v2/log"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 // UploadPartRequest represents a part upload request
 type UploadPartRequest struct {
 	UploadKey   string
 	Type        string
-	ChunkNumber int64
+	ChunkNumber int32
 	TotalChunks int
 	FileName    string
 }
@@ -74,6 +74,7 @@ func (cli *Client) UploadPartWithPsk(ctx context.Context, req *UploadPartRequest
 
 	// List parts so that we can validate if the upload operation is complete
 	output, err := cli.sdkClient.ListParts(
+		ctx,
 		&s3.ListPartsInput{
 			Key:      &req.UploadKey,
 			Bucket:   &cli.bucketName,
@@ -109,6 +110,7 @@ func (cli *Client) doGetOrCreateMultipartUpload(ctx context.Context, req *Upload
 
 	// List existing Multipart uploads for our bucket
 	listMultiOutput, err := cli.sdkClient.ListMultipartUploads(
+		ctx,
 		&s3.ListMultipartUploadsInput{
 			Bucket: &cli.bucketName,
 		})
@@ -125,6 +127,7 @@ func (cli *Client) doGetOrCreateMultipartUpload(ctx context.Context, req *Upload
 
 	// If we didn't find the Multipart upload, create it
 	createMultiOutput, err := cli.sdkClient.CreateMultipartUpload(
+		ctx,
 		&s3.CreateMultipartUploadInput{
 			Bucket:      &cli.bucketName,
 			Key:         &req.UploadKey,
@@ -141,7 +144,7 @@ func (cli *Client) doGetOrCreateMultipartUpload(ctx context.Context, req *Upload
 func (cli *Client) doUploadPart(ctx context.Context, input *s3.UploadPartInput, psk []byte) (*s3.UploadPartOutput, error) {
 	if psk != nil {
 		// Upload Part with PSK
-		out, err := cli.cryptoClient.UploadPartWithPSK(input, psk)
+		out, err := cli.cryptoClient.UploadPartWithPSK(ctx, input, psk)
 		if err != nil {
 			return nil, fmt.Errorf("error uploading part with psk: %w", err)
 		}
@@ -149,7 +152,7 @@ func (cli *Client) doUploadPart(ctx context.Context, input *s3.UploadPartInput, 
 	}
 
 	// Upload part without user-defined PSK
-	out, err := cli.sdkClient.UploadPart(input)
+	out, err := cli.sdkClient.UploadPart(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("error uploading part: %w", err)
 	}
@@ -172,7 +175,7 @@ func (cli *Client) CheckPartUploaded(ctx context.Context, req *UploadPartRequest
 		Bucket: &cli.bucketName,
 	}
 
-	listMultiOutput, err := cli.sdkClient.ListMultipartUploads(listMultiInput)
+	listMultiOutput, err := cli.sdkClient.ListMultipartUploads(ctx, listMultiInput)
 	if err != nil {
 		return false, NewError(fmt.Errorf("error fetching multipart upload list: %w", err), logData)
 	}
@@ -194,7 +197,7 @@ func (cli *Client) CheckPartUploaded(ctx context.Context, req *UploadPartRequest
 		UploadId: &uploadID,
 	}
 
-	output, err := cli.sdkClient.ListParts(input)
+	output, err := cli.sdkClient.ListParts(ctx, input)
 	if err != nil {
 		return false, NewListPartsError(fmt.Errorf("list parts failed: %w", err), logData)
 	}
@@ -211,7 +214,7 @@ func (cli *Client) CheckPartUploaded(ctx context.Context, req *UploadPartRequest
 	}
 
 	for _, part := range parts {
-		if *part.PartNumber == int64(req.ChunkNumber) {
+		if *part.PartNumber == req.ChunkNumber {
 			log.Info(ctx, "chunk already uploaded", logData)
 			return true, nil
 		}
@@ -221,38 +224,29 @@ func (cli *Client) CheckPartUploaded(ctx context.Context, req *UploadPartRequest
 }
 
 // completeUpload if all parts have been uploaded, we complete the multipart upload.
-func (cli *Client) completeUpload(ctx context.Context, uploadID string, req *UploadPartRequest, parts []*s3.Part) error {
-	var completedParts []*s3.CompletedPart
+func (cli *Client) completeUpload(ctx context.Context, uploadID string, req *UploadPartRequest, parts []types.Part) error {
+	var completedParts []types.CompletedPart
 
 	for _, part := range parts {
-		completedParts = append(completedParts, &s3.CompletedPart{
+		completedParts = append(completedParts, types.CompletedPart{
 			PartNumber: part.PartNumber,
 			ETag:       part.ETag,
 		})
 	}
 
 	if len(completedParts) == req.TotalChunks {
-		completeInput := &s3.CompleteMultipartUploadInput{
+		_, err := cli.sdkClient.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
 			Key:      &req.UploadKey,
 			UploadId: &uploadID,
-			MultipartUpload: &s3.CompletedMultipartUpload{
+			MultipartUpload: &types.CompletedMultipartUpload{
 				Parts: completedParts,
 			},
 			Bucket: &cli.bucketName,
-		}
-
-		log.Info(ctx, "attempting to complete multipart upload", log.Data{"complete": completeInput})
-
-		_, err := cli.sdkClient.CompleteMultipartUpload(completeInput)
+		})
 		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok {
-				if awsErr.Code() == "EntityTooSmall" {
-					return NewChunkTooSmallError(awsErr, log.Data{"complete": completeInput})
-				}
-			}
-
-			return NewError(fmt.Errorf("error completing multipart upload: %w", err), log.Data{"complete": completeInput})
+			return fmt.Errorf("error completing multipart upload: %w", err)
 		}
 	}
+
 	return nil
 }

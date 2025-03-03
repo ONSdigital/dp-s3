@@ -7,17 +7,18 @@
 package s3
 
 import (
+	"context"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"sync"
 
 	"github.com/ONSdigital/dp-s3/v2/crypto"
 	"github.com/ONSdigital/log.go/v2/log"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 // Client client with SDK client, CryptoClient and BucketName
@@ -29,68 +30,68 @@ type Client struct {
 	bucketName     string
 	region         string
 	mutexUploadID  *sync.Mutex
-	session        *session.Session
+	cfg            aws.Config
 }
 
 // NewClient creates a new S3 Client configured for the given region and bucket name.
-// Note: This function will create a new session, if you already have a session, please use NewUploaderWithSession instead
+// Note: This function will create a new config, if you already have a config, please use NewUploader instead
 // Any error establishing the AWS session will be returned
-func NewClient(region string, bucketName string) (*Client, error) {
-	s, err := session.NewSession(&aws.Config{Region: &region})
+func NewClient(ctx context.Context, region string, bucketName string) (*Client, error) {
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		return nil, NewError(
-			fmt.Errorf("error creating session: %w", err),
+			fmt.Errorf("error creating config: %w", err),
 			log.Data{
 				"region":      region,
 				"bucket_name": bucketName,
 			},
 		)
 	}
-	return NewClientWithSession(bucketName, s), nil
+	return NewClientWithConfig(bucketName, cfg), nil
 }
 
-// NewClient creates a new S3 Client configured for the given region and bucket name with creds.
-// Note: This function will create a new session, if you already have a session, please use NewUploaderWithSession instead
+// NewClientWithCredentials creates a new S3 Client configured for the given region and bucket name with creds.
+// Note: This function will create a new config, if you already have a config, please use NewUploader instead
 // Any error establishing the AWS session will be returned
-func NewClientWithCredentials(region string, bucketName string, awsAccessKey string, awsSecretKey string) (*Client, error) {
-	s, err := session.NewSession(&aws.Config{
-		Region:      &region,
-		Credentials: credentials.NewStaticCredentials(awsAccessKey, awsSecretKey, ""),
-	})
+func NewClientWithCredentials(ctx context.Context, region string, bucketName string, awsAccessKey string, awsSecretKey string) (*Client, error) {
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion(region),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(awsAccessKey, awsSecretKey, "")),
+	)
 	if err != nil {
 		return nil, NewError(
-			fmt.Errorf("error creating session: %w", err),
+			fmt.Errorf("error creating config: %w", err),
 			log.Data{
 				"region":      region,
 				"bucket_name": bucketName,
 			},
 		)
 	}
-	return NewClientWithSession(bucketName, s), nil
+	return NewClientWithConfig(bucketName, cfg), nil
 }
 
-// NewClientWithSession creates a new S3 Client configured for the given bucket name, using the provided session and region within it.
-func NewClientWithSession(bucketName string, s *session.Session) *Client {
-	// Get region for the Session config
-	region := s.Config.Region
+// NewClientWithConfig creates a new S3 Client configured for the given bucket name, using the provided config and region within it.
+func NewClientWithConfig(bucketName string, cfg aws.Config) *Client {
+	// Get region for the Config
+	region := cfg.Region
 
-	// Create AWS-SDK-S3 client with the session
-	sdkClient := s3.New(s)
+	// Create AWS-SDK-S3 client with the config
+	sdkClient := s3.NewFromConfig(cfg)
 
 	// Create an AWS-SDK-S3 Uploader.
-	sdkUploader := s3manager.NewUploader(s)
+	sdkUploader := manager.NewUploader(sdkClient)
 
 	// Create crypto client, which allows user to provide a psk
-	cryptoClient := crypto.New(s, &crypto.Config{HasUserDefinedPSK: true})
+	cryptoClient := crypto.New(cfg, &crypto.Config{HasUserDefinedPSK: true})
 
 	// Create crypto uploader, which allows user to provide a psk
-	cryptoUploader := crypto.NewUploader(s, &crypto.Config{HasUserDefinedPSK: true})
+	cryptoUploader := crypto.NewUploader(cfg, &crypto.Config{HasUserDefinedPSK: true})
 
-	return InstantiateClient(sdkClient, cryptoClient, sdkUploader, cryptoUploader, bucketName, *region, s)
+	return InstantiateClient(sdkClient, cryptoClient, sdkUploader, cryptoUploader, bucketName, region, cfg)
 }
 
 // InstantiateClient creates a new instance of S3 struct with the provided clients, bucket and region.
-func InstantiateClient(sdkClient S3SDKClient, cryptoClient S3CryptoClient, sdkUploader S3SDKUploader, cryptoUploader S3CryptoUploader, bucketName, region string, s *session.Session) *Client {
+func InstantiateClient(sdkClient S3SDKClient, cryptoClient S3CryptoClient, sdkUploader S3SDKUploader, cryptoUploader S3CryptoUploader, bucketName, region string, cfg aws.Config) *Client {
 	return &Client{
 		sdkClient:      sdkClient,
 		cryptoClient:   cryptoClient,
@@ -99,13 +100,13 @@ func InstantiateClient(sdkClient S3SDKClient, cryptoClient S3CryptoClient, sdkUp
 		bucketName:     bucketName,
 		region:         region,
 		mutexUploadID:  &sync.Mutex{},
-		session:        s,
+		cfg:            cfg,
 	}
 }
 
-// Session returns the Session of this client
-func (cli *Client) Session() *session.Session {
-	return cli.session
+// Config returns the Config of this client
+func (cli *Client) Config() aws.Config {
+	return cli.cfg
 }
 
 // BucketName returns the bucket name used by this S3 client

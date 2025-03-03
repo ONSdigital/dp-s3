@@ -14,16 +14,13 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3iface"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 const (
@@ -48,10 +45,10 @@ type Config struct {
 	MultipartChunkSize int
 }
 
-// CryptoClient provides a wrapper to the aws-sdk-go S3
+// CryptoClient provides a wrapper to the aws-sdk-go-v2 S3
 // object
 type CryptoClient struct {
-	s3iface.S3API
+	s3Client *s3.Client
 
 	privKey           *rsa.PrivateKey
 	publicKey         *rsa.PublicKey
@@ -81,7 +78,7 @@ func (r *cryptoReader) Read(b []byte) (int, error) {
 			return n, err
 		}
 
-		unencryptedChunk, err := decryptObjectContent(r.psk, ioutil.NopCloser(bytes.NewReader(p[:n])))
+		unencryptedChunk, err := decryptObjectContent(r.psk, io.NopCloser(bytes.NewReader(p[:n])))
 		if err != nil {
 			return 0, err
 		}
@@ -160,21 +157,21 @@ func (r *cryptoReader) Close() error {
 	return r.s3Reader.Close()
 }
 
-// Uploader provides a wrapper to the aws-sdk-go s3manager uploader
+// Uploader provides a wrapper to the aws-sdk-go-v2 manager uploader
 // for encryption
 type Uploader struct {
 	*CryptoClient
 
-	s3uploader *s3manager.Uploader
+	s3uploader manager.Uploader
 }
 
 // New supports the creation of an Encryption supported client
-// with a given aws session and rsa Private Key.
-func New(sess *session.Session, cfg *Config) *CryptoClient {
+// with a given aws config and rsa Private Key.
+func New(awsConfig aws.Config, cfg *Config) *CryptoClient {
 	if cfg.MultipartChunkSize == 0 {
 		cfg.MultipartChunkSize = maxChunkSize
 	}
-	cc := &CryptoClient{s3.New(sess), cfg.PrivateKey, cfg.PublicKey, cfg.HasUserDefinedPSK, cfg.MultipartChunkSize}
+	cc := &CryptoClient{s3.NewFromConfig(awsConfig), cfg.PrivateKey, cfg.PublicKey, cfg.HasUserDefinedPSK, cfg.MultipartChunkSize}
 
 	if cc.privKey != nil {
 		cc.publicKey = &cc.privKey.PublicKey
@@ -184,8 +181,8 @@ func New(sess *session.Session, cfg *Config) *CryptoClient {
 }
 
 // NewUploader creates a new instance of the crypto Uploader
-func NewUploader(sess *session.Session, cfg *Config) *Uploader {
-	cc := &CryptoClient{s3.New(sess), cfg.PrivateKey, cfg.PublicKey, cfg.HasUserDefinedPSK, cfg.MultipartChunkSize}
+func NewUploader(awsConfig aws.Config, cfg *Config) *Uploader {
+	cc := &CryptoClient{s3.NewFromConfig(awsConfig), cfg.PrivateKey, cfg.PublicKey, cfg.HasUserDefinedPSK, cfg.MultipartChunkSize}
 
 	if cc.privKey != nil {
 		cc.publicKey = &cc.privKey.PublicKey
@@ -194,7 +191,7 @@ func NewUploader(sess *session.Session, cfg *Config) *Uploader {
 	return &Uploader{
 		CryptoClient: cc,
 
-		s3uploader: s3manager.NewUploader(sess),
+		s3uploader: *manager.NewUploader(s3.NewFromConfig(awsConfig)),
 	}
 }
 
@@ -202,200 +199,141 @@ func NewUploader(sess *session.Session, cfg *Config) *Uploader {
 // is encrypted using the public key and stored as metadata against the completed
 // object, as well as temporarily being stored as its own object while the Multipart
 // upload is being updated.
-func (c *CryptoClient) CreateMultipartUploadRequest(input *s3.CreateMultipartUploadInput) (req *request.Request, out *s3.CreateMultipartUploadOutput) {
-	req = new(request.Request)
+func (c *CryptoClient) CreateMultipartUpload(ctx context.Context, input *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
 	if !c.hasUserDefinedPSK {
 		psk := createPSK()
 
 		ekStr, err := c.encryptKey(psk)
 		if err != nil {
-			req.Error = err
-			return
+			return nil, fmt.Errorf("failed to encrypt PSK: %w", err)
 		}
 
-		input.Metadata = make(map[string]*string)
-		input.Metadata[encryptionKeyHeader] = &ekStr
+		if input.Metadata == nil {
+			input.Metadata = make(map[string]string)
+		}
+		input.Metadata[encryptionKeyHeader] = ekStr
 
-		if err := c.storeEncryptedKey(input, ekStr); err != nil {
-			req.Error = err
-			return
+		if err := c.storeEncryptedKey(ctx, input, ekStr); err != nil {
+			return nil, fmt.Errorf("failed to store encrypted PSK: %w", err)
 		}
 	}
 
-	return c.S3API.CreateMultipartUploadRequest(input)
-}
+	out, err := c.s3Client.CreateMultipartUpload(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("CreateMultipartUpload failed: %w", err)
+	}
 
-// CreateMultipartUpload is a wrapper for CreateMultipartUploadRequest
-func (c *CryptoClient) CreateMultipartUpload(input *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
-	req, out := c.CreateMultipartUploadRequest(input)
-	return out, req.Send()
-}
-
-// CreateMultipartUploadWithContext is a wrapper for CreateMultipartUploadRequest with
-// the additional context, and request options support.
-func (c *CryptoClient) CreateMultipartUploadWithContext(ctx aws.Context, input *s3.CreateMultipartUploadInput, opts ...request.Option) (*s3.CreateMultipartUploadOutput, error) {
-	req, out := c.CreateMultipartUploadRequest(input)
-	req.SetContext(ctx)
-	req.ApplyOptions(opts...)
-	return out, req.Send()
+	return out, nil
 }
 
 // UploadPartRequest wraps the SDK method by retrieving the encrypted PSK from the temporary
 // object, decrypting the PSK using the private key, before stream encoding the content
 // for the particular part
-func (c *CryptoClient) UploadPartRequest(input *s3.UploadPartInput) (req *request.Request, out *s3.UploadPartOutput) {
-	req = new(request.Request)
-	ekStr, err := c.getEncryptedKey(input)
+func (c *CryptoClient) UploadPartRequest(ctx context.Context, input *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
+	ekStr, err := c.getEncryptedKey(ctx, input)
 	if err != nil {
-		req.Error = err
-		return
+		return nil, fmt.Errorf("failed to encrypt PSK: %w", err)
 	}
 
 	psk, err := c.decryptKey(ekStr)
 	if err != nil {
-		req.Error = err
-		return
+		return nil, fmt.Errorf("failed to decrypt PSK: %w", err)
 	}
 
 	encryptedContent, err := encryptObjectContent(psk, input.Body)
 	if err != nil {
-		req.Error = err
-		return
+		return nil, fmt.Errorf("failed to encrypt content: %w", err)
 	}
 
 	input.Body = bytes.NewReader(encryptedContent)
 
-	return c.S3API.UploadPartRequest(input)
+	out, err := c.s3Client.UploadPart(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("UploadPart failed: %w", err)
+	}
+
+	return out, nil
 }
 
 // UploadPartRequestWithPSK wraps the SDK method encrypting the part contents with a user defined
 // PSK
-func (c *CryptoClient) UploadPartRequestWithPSK(input *s3.UploadPartInput, psk []byte) (req *request.Request, out *s3.UploadPartOutput) {
-	req = new(request.Request)
+func (c *CryptoClient) UploadPartWithPSK(ctx context.Context, input *s3.UploadPartInput, psk []byte) (*s3.UploadPartOutput, error) {
 	encryptedContent, err := encryptObjectContent(psk, input.Body)
 	if err != nil {
-		req.Error = err
-		return
+		return nil, fmt.Errorf("failed to encrypt content: %w", err)
 	}
 
 	input.Body = bytes.NewReader(encryptedContent)
 
-	return c.S3API.UploadPartRequest(input)
-}
+	out, err := c.s3Client.UploadPart(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("UploadPart failed: %w", err)
+	}
 
-// UploadPart is a wrapper for UploadPartRequest
-func (c *CryptoClient) UploadPart(input *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
-	req, out := c.UploadPartRequest(input)
-	return out, req.Send()
-}
-
-// UploadPartWithPSK is a wrapper for UploadPartRequestWithPSK
-func (c *CryptoClient) UploadPartWithPSK(input *s3.UploadPartInput, psk []byte) (*s3.UploadPartOutput, error) {
-	req, out := c.UploadPartRequestWithPSK(input, psk)
-	return out, req.Send()
-}
-
-// UploadPartWithContext is a wrapper for UploadPartRequest with
-// the additional context, and request options support.
-func (c *CryptoClient) UploadPartWithContext(ctx aws.Context, input *s3.UploadPartInput, opts ...request.Option) (*s3.UploadPartOutput, error) {
-	req, out := c.UploadPartRequest(input)
-	req.SetContext(ctx)
-	req.ApplyOptions(opts...)
-	return out, req.Send()
-}
-
-// UploadPartWithContextWithPSK is a wrapper for UploadPartRequestWithPSK with
-// the additional context, and request options support.
-func (c *CryptoClient) UploadPartWithContextWithPSK(ctx aws.Context, input *s3.UploadPartInput, psk []byte, opts ...request.Option) (*s3.UploadPartOutput, error) {
-	req, out := c.UploadPartRequestWithPSK(input, psk)
-	req.SetContext(ctx)
-	req.ApplyOptions(opts...)
-	return out, req.Send()
+	return out, nil
 }
 
 // PutObjectRequest wraps the SDK method by creating a PSK, encrypting it using the public key,
 // and encrypting the object content using the PSK
-func (c *CryptoClient) PutObjectRequest(input *s3.PutObjectInput) (req *request.Request, out *s3.PutObjectOutput) {
-	req = new(request.Request)
+func (c *CryptoClient) PutObject(ctx context.Context, input *s3.PutObjectInput) (*s3.PutObjectOutput, error) {
 	psk := createPSK()
 
 	ekStr, err := c.encryptKey(psk)
 	if err != nil {
-		req.Error = err
-		return
+		return nil, fmt.Errorf("failed to encrypt PSK: %w", err)
 	}
 
-	input.Metadata = make(map[string]*string)
-	input.Metadata[encryptionKeyHeader] = &ekStr
+	if input.Metadata == nil {
+		input.Metadata = make(map[string]string)
+	}
+	input.Metadata[encryptionKeyHeader] = ekStr
 
 	encryptedContent, err := encryptObjectContent(psk, input.Body)
 	if err != nil {
-		req.Error = err
-		return
+		return nil, fmt.Errorf("failed to encrypt content: %w", err)
 	}
 
 	input.Body = bytes.NewReader(encryptedContent)
 
-	return c.S3API.PutObjectRequest(input)
+	out, err := c.s3Client.PutObject(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("PutObject failed: %w", err)
+	}
+
+	return out, nil
 }
 
 // PutObjectRequestWithPSK wraps the SDK method by encrypting the object content with a user defined PSK
-func (c *CryptoClient) PutObjectRequestWithPSK(input *s3.PutObjectInput, psk []byte) (req *request.Request, out *s3.PutObjectOutput) {
-	req = new(request.Request)
+func (c *CryptoClient) PutObjectWithPSK(ctx context.Context, input *s3.PutObjectInput, psk []byte) (*s3.PutObjectOutput, error) {
 	encryptedContent, err := encryptObjectContent(psk, input.Body)
 	if err != nil {
-		req.Error = err
-		return
+		return nil, fmt.Errorf("failed to encrypt content: %w", err)
 	}
 
 	input.Body = bytes.NewReader(encryptedContent)
 
-	return c.S3API.PutObjectRequest(input)
-}
+	out, err := c.s3Client.PutObject(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("PutObject failed: %w", err)
+	}
 
-// PutObject is a wrapper for PutObjectRequest
-func (c *CryptoClient) PutObject(input *s3.PutObjectInput) (*s3.PutObjectOutput, error) {
-	req, out := c.PutObjectRequest(input)
-	return out, req.Send()
-}
-
-// PutObjectWithPSK is a wrapper for PutObjectRequestWithPSK
-func (c *CryptoClient) PutObjectWithPSK(input *s3.PutObjectInput, psk []byte) (*s3.PutObjectOutput, error) {
-	req, out := c.PutObjectRequestWithPSK(input, psk)
-	return out, req.Send()
-}
-
-// PutObjectWithContextWithPSK is a wrapper for PutObjectRequestWithPSK with
-// the additional context, and request options support.
-func (c *CryptoClient) PutObjectWithContextWithPSK(ctx aws.Context, input *s3.PutObjectInput, psk []byte, opts ...request.Option) (*s3.PutObjectOutput, error) {
-	req, out := c.PutObjectRequestWithPSK(input, psk)
-	req.SetContext(ctx)
-	req.ApplyOptions(opts...)
-	return out, req.Send()
+	return out, nil
 }
 
 // GetObjectRequest wraps the SDK method by retrieving the encrypted PSK from the object metadata.
 // The PSK is then decrypted, and is then used to decrypt the content of the object.
-func (c *CryptoClient) GetObjectRequest(input *s3.GetObjectInput) (req *request.Request, out *s3.GetObjectOutput) {
-	req, out = c.S3API.GetObjectRequest(input)
-
-	err := req.Send()
-	if err != nil {
-		req.Error = err
-		return
-	}
+func (c *CryptoClient) GetObject(ctx context.Context, input *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
+	out, err := c.s3Client.GetObject(ctx, input)
 
 	ekStr := out.Metadata[encryptionKeyHeader]
 
-	if ekStr == nil {
-		req.Error = ErrNoMetadataPSK
-		return
+	if ekStr == "" {
+		return nil, ErrNoMetadataPSK
 	}
 
-	psk, err := c.decryptKey(*ekStr)
+	psk, err := c.decryptKey(ekStr)
 	if err != nil {
-		req.Error = err
-		return
+		return nil, fmt.Errorf("failed to decrypt PSK: %w", err)
 	}
 
 	var content io.Reader
@@ -405,23 +343,19 @@ func (c *CryptoClient) GetObjectRequest(input *s3.GetObjectInput) (req *request.
 		content, err = decryptObjectContentChunks(maxChunkSize, psk, out.Body)
 	}
 	if err != nil {
-		req.Error = err
-		return
+		return nil, fmt.Errorf("failed to decrypt content: %w", err)
 	}
 
-	out.Body = ioutil.NopCloser(content)
+	out.Body = io.NopCloser(content)
 
-	return
+	return out, nil
 }
 
 // GetObjectRequestWithPSK wraps the SDK method by decrypting the retrieved object content with the given PSK
-func (c *CryptoClient) GetObjectRequestWithPSK(input *s3.GetObjectInput, psk []byte) (req *request.Request, out *s3.GetObjectOutput) {
-	req, out = c.S3API.GetObjectRequest(input)
-
-	err := req.Send()
+func (c *CryptoClient) GetObjectWithPSK(ctx context.Context, input *s3.GetObjectInput, psk []byte) (*s3.GetObjectOutput, error) {
+	out, err := c.s3Client.GetObject(ctx, input)
 	if err != nil {
-		req.Error = err
-		return
+		return nil, fmt.Errorf("GetObject failed: %w", err)
 	}
 
 	out.Body = &cryptoReader{
@@ -430,81 +364,27 @@ func (c *CryptoClient) GetObjectRequestWithPSK(input *s3.GetObjectInput, psk []b
 		chunkSize: c.chunkSize,
 	}
 
-	return
+	return out, nil
 }
 
-// GetObject is a wrapper for GetObjectRequest
-func (c *CryptoClient) GetObject(input *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
-	req, out := c.GetObjectRequest(input)
-	return out, req.Error
-}
-
-// GetObjectWithPSK is a wrapper for GetObjectRequestWithPSK
-func (c *CryptoClient) GetObjectWithPSK(input *s3.GetObjectInput, psk []byte) (*s3.GetObjectOutput, error) {
-	req, out := c.GetObjectRequestWithPSK(input, psk)
-	return out, req.Error
-}
-
-// GetObjectWithContext is a wrapper for GetObjectRequest with
-// the additional context, and request options support.
-func (c *CryptoClient) GetObjectWithContext(ctx aws.Context, input *s3.GetObjectInput, opts ...request.Option) (*s3.GetObjectOutput, error) {
-	req, out := c.GetObjectRequest(input)
-	req.SetContext(ctx)
-	req.ApplyOptions(opts...)
-	return out, req.Error
-}
-
-// GetObjectWithContextWithPSK is a wrapper for GetObjectRequestWithPSK with
-// the additional context, and request options support.
-func (c *CryptoClient) GetObjectWithContextWithPSK(ctx aws.Context, input *s3.GetObjectInput, psk []byte, opts ...request.Option) (*s3.GetObjectOutput, error) {
-	req, out := c.GetObjectRequestWithPSK(input, psk)
-	req.SetContext(ctx)
-	req.ApplyOptions(opts...)
-	return out, req.Error
-}
-
-// CompleteMultipartUploadRequest wraps the SDK method by removing the temporarily stored encrypted
-// PSK object.
-func (c *CryptoClient) CompleteMultipartUploadRequest(input *s3.CompleteMultipartUploadInput) (req *request.Request, out *s3.CompleteMultipartUploadOutput) {
-	req = new(request.Request)
-	if !c.hasUserDefinedPSK {
-		if err := c.removeEncryptedKey(input); err != nil {
-			req.Error = err
-		}
-	}
-
-	return c.S3API.CompleteMultipartUploadRequest(input)
-}
-
-// CompleteMultipartUpload is a wrapper for CompleteMultipartUploadRequest
-func (c *CryptoClient) CompleteMultipartUpload(input *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error) {
-	req, out := c.CompleteMultipartUploadRequest(input)
-	return out, req.Send()
-}
-
-// CompleteMultipartUploadWithContext is a wrapper for CompleteMultipartUploadRequest with
-// the additional context, and request options support.
-func (c *CryptoClient) CompleteMultipartUploadWithContext(ctx aws.Context, input *s3.CompleteMultipartUploadInput, opts ...request.Option) (*s3.CompleteMultipartUploadOutput, error) {
-	req, out := c.CompleteMultipartUploadRequest(input)
-	req.SetContext(ctx)
-	req.ApplyOptions(opts...)
-	return out, req.Send()
-}
-
-func (c *CryptoClient) storeEncryptedKey(input *s3.CreateMultipartUploadInput, key string) error {
+func (c *CryptoClient) storeEncryptedKey(ctx context.Context, input *s3.CreateMultipartUploadInput, key string) error {
 	keyFileName := *input.Key + ".key"
 
 	objectInput := &s3.PutObjectInput{
-		Body:   aws.ReadSeekCloser(strings.NewReader(key)),
+		Body:   strings.NewReader(key),
 		Bucket: input.Bucket,
 		Key:    &keyFileName,
 	}
 
-	_, err := c.S3API.PutObject(objectInput)
-	return err
+	_, err := c.s3Client.PutObject(ctx, objectInput)
+	if err != nil {
+		return fmt.Errorf("failed to store encrypted PSK: %w", err)
+	}
+
+	return nil
 }
 
-func (c *CryptoClient) getEncryptedKey(input *s3.UploadPartInput) (string, error) {
+func (c *CryptoClient) getEncryptedKey(ctx context.Context, input *s3.UploadPartInput) (string, error) {
 	keyFileName := *input.Key + ".key"
 
 	objectInput := &s3.GetObjectInput{
@@ -512,12 +392,12 @@ func (c *CryptoClient) getEncryptedKey(input *s3.UploadPartInput) (string, error
 		Key:    &keyFileName,
 	}
 
-	objectOutput, err := c.S3API.GetObject(objectInput)
+	objectOutput, err := c.s3Client.GetObject(ctx, objectInput)
 	if err != nil {
 		return "", err
 	}
 
-	key, err := ioutil.ReadAll(objectOutput.Body)
+	key, err := io.ReadAll(objectOutput.Body)
 	if err != nil {
 		return "", err
 	}
@@ -525,7 +405,7 @@ func (c *CryptoClient) getEncryptedKey(input *s3.UploadPartInput) (string, error
 	return string(key), nil
 }
 
-func (c *CryptoClient) removeEncryptedKey(input *s3.CompleteMultipartUploadInput) error {
+func (c *CryptoClient) removeEncryptedKey(ctx context.Context, input *s3.CompleteMultipartUploadInput) error {
 	keyFileName := *input.Key + ".key"
 
 	objectInput := &s3.DeleteObjectInput{
@@ -533,7 +413,7 @@ func (c *CryptoClient) removeEncryptedKey(input *s3.CompleteMultipartUploadInput
 		Key:    &keyFileName,
 	}
 
-	_, err := c.S3API.DeleteObject(objectInput)
+	_, err := c.s3Client.DeleteObject(ctx, objectInput)
 	return err
 }
 
@@ -563,7 +443,7 @@ func (c *CryptoClient) decryptKey(encryptedKeyHex string) ([]byte, error) {
 }
 
 // Upload provides a wrapper for the sdk method with encryption
-func (u *Uploader) Upload(input *s3manager.UploadInput) (output *s3manager.UploadOutput, err error) {
+func (u *Uploader) Upload(ctx context.Context, input *s3.PutObjectInput) (output *manager.UploadOutput, err error) {
 	psk := createPSK()
 
 	ekStr, err := u.CryptoClient.encryptKey(psk)
@@ -571,8 +451,8 @@ func (u *Uploader) Upload(input *s3manager.UploadInput) (output *s3manager.Uploa
 		return
 	}
 
-	input.Metadata = make(map[string]*string)
-	input.Metadata[encryptionKeyHeader] = &ekStr
+	input.Metadata = make(map[string]string)
+	input.Metadata[encryptionKeyHeader] = ekStr
 
 	encryptedContent, err := encryptObjectContent(psk, input.Body)
 	if err != nil {
@@ -581,24 +461,21 @@ func (u *Uploader) Upload(input *s3manager.UploadInput) (output *s3manager.Uploa
 
 	input.Body = bytes.NewReader(encryptedContent)
 
-	return u.s3uploader.Upload(input)
+	return u.s3uploader.Upload(ctx, input)
 }
 
 // UploadWithPSK allows you to encrypt the file with a given psk
-func (u *Uploader) UploadWithPSK(ctx context.Context, input *s3manager.UploadInput, psk []byte) (output *s3manager.UploadOutput, err error) {
+func (u *Uploader) UploadWithPSK(ctx context.Context, input *s3.PutObjectInput, psk []byte) (output *manager.UploadOutput, err error) {
 	input.Body = &encryptoReader{
 		psk:      psk,
 		s3Reader: input.Body,
 	}
 
-	if ctx != nil {
-		return u.s3uploader.UploadWithContext(ctx, input)
-	}
-	return u.s3uploader.Upload(input)
+	return u.s3uploader.Upload(ctx, input)
 }
 
 func encryptObjectContent(psk []byte, b io.Reader) ([]byte, error) {
-	unencryptedBytes, err := ioutil.ReadAll(b)
+	unencryptedBytes, err := io.ReadAll(b)
 	if err != nil {
 		return nil, err
 	}
@@ -631,7 +508,7 @@ func decryptObjectContentChunks(size int, psk []byte, r io.ReadCloser) (io.Reade
 			return nil, err
 		}
 
-		unencryptedChunk, err := decryptObjectContent(psk, ioutil.NopCloser(bytes.NewReader(p[:n])))
+		unencryptedChunk, err := decryptObjectContent(psk, io.NopCloser(bytes.NewReader(p[:n])))
 		if err != nil {
 			return nil, err
 		}
@@ -646,7 +523,7 @@ func decryptObjectContentChunks(size int, psk []byte, r io.ReadCloser) (io.Reade
 }
 
 func decryptObjectContent(psk []byte, b io.ReadCloser) ([]byte, error) {
-	encryptedBytes, err := ioutil.ReadAll(b)
+	encryptedBytes, err := io.ReadAll(b)
 	if err != nil {
 		return nil, err
 	}
