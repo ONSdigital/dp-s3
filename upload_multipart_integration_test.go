@@ -3,18 +3,19 @@
 
 package s3_test
 
+// TODO: move back to top of file
+
 import (
 	"context"
 	"fmt"
 	"testing"
 
 	dps3 "github.com/ONSdigital/dp-s3/v2"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	awss3 "github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -28,16 +29,17 @@ const (
 
 func TestMultipartUploadIntegrationTest(t *testing.T) {
 	Convey("Multipart Upload", t, func() {
-		s, err := session.NewSession(&aws.Config{
-			Endpoint:         aws.String(localstackHost),
-			Region:           aws.String("eu-west-1"),
-			S3ForcePathStyle: aws.Bool(true),
-			Credentials:      credentials.NewStaticCredentials("test", "test", ""),
-		})
+		cfg, err := config.LoadDefaultConfig(context.Background(),
+			config.WithRegion("eu-west-1"),
+			config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("test", "test", "")),
+		)
 		So(err, ShouldBeNil)
 
-		dpClient := dps3.NewClientWithSession(bucket, s)
-		awsClient := s3.New(s)
+		dpClient := dps3.NewClientWithConfig(bucket, cfg)
+		awsClient := s3.NewFromConfig(cfg, func(o *s3.Options) {
+			o.BaseEndpoint = aws.String(localstackHost)
+			o.UsePathStyle = true
+		})
 
 		Convey("When Uploading all parts of a file", func() {
 			r, err := dpClient.UploadPart(context.Background(), &dps3.UploadPartRequest{
@@ -55,7 +57,7 @@ func TestMultipartUploadIntegrationTest(t *testing.T) {
 			})
 
 			Convey("And should have created the file in S3", func() {
-				_, err = awsClient.HeadObject(&awss3.HeadObjectInput{
+				_, err = awsClient.HeadObject(context.Background(), &s3.HeadObjectInput{
 					Bucket: aws.String(bucket),
 					Key:    aws.String(file),
 				})
@@ -64,9 +66,9 @@ func TestMultipartUploadIntegrationTest(t *testing.T) {
 			})
 
 			Convey("And the file content in S3 should match given payload", func() {
-				buf := aws.WriteAtBuffer{}
-				dl := s3manager.NewDownloaderWithClient(awsClient)
-				_, err = dl.Download(&buf, &awss3.GetObjectInput{
+				buf := manager.NewWriteAtBuffer([]byte{})
+				dl := manager.NewDownloader(awsClient)
+				_, err = dl.Download(context.Background(), buf, &s3.GetObjectInput{
 					Bucket: aws.String(bucket),
 					Key:    aws.String(file),
 				})
