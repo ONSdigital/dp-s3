@@ -8,7 +8,8 @@ import (
 	health "github.com/ONSdigital/dp-healthcheck/healthcheck"
 	dps3 "github.com/ONSdigital/dp-s3/v2"
 	"github.com/ONSdigital/dp-s3/v2/mock"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -30,22 +31,22 @@ var msgInexistentRegion = "RequestError"
 var msgBucketNotFound = "BucketNotFound"
 
 // bucketExists is the mock function for requests for existing buckets
-func bucketExists(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
+func bucketExists(ctx context.Context, input *s3.HeadBucketInput, opts ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
 	return &s3.HeadBucketOutput{}, nil
 }
 
 // bucketDoesNotExist is the mock function for requests with inexistent regions
-func bucketDoesNotExist(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
+func bucketDoesNotExist(ctx context.Context, input *s3.HeadBucketInput, opts ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
 	return &s3.HeadBucketOutput{}, errors.New(msgBucketNotFound)
 }
 
 // bucketWrongRegion is the mock function for requests with wrong region for bucket
-func bucketWrongRegion(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
+func bucketWrongRegion(ctx context.Context, input *s3.HeadBucketInput, opts ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
 	return &s3.HeadBucketOutput{}, errors.New(msgWrongRegion)
 }
 
 // bucketInexistentRegion is the mock function for requests with inexistent region
-func bucketInexistentRegion(*s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
+func bucketInexistentRegion(ctx context.Context, input *s3.HeadBucketInput, opts ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
 	return &s3.HeadBucketOutput{}, errors.New(msgInexistentRegion)
 }
 
@@ -56,7 +57,7 @@ func TestBucketOk(t *testing.T) {
 		sdkMock := &mock.S3SDKClientMock{
 			HeadBucketFunc: bucketExists,
 		}
-		cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, ExistingBucket, ExpectedRegion, nil)
+		cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, ExistingBucket, ExpectedRegion, aws.Config{})
 
 		// CheckState for test validation
 		checkState := health.NewCheckState(dps3.ServiceName)
@@ -78,7 +79,7 @@ func TestBucketDoesNotExist(t *testing.T) {
 		sdkMock := &mock.S3SDKClientMock{
 			HeadBucketFunc: bucketDoesNotExist,
 		}
-		cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, InexistentBucket, ExpectedRegion, nil)
+		cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, InexistentBucket, ExpectedRegion, aws.Config{})
 
 		// CheckState for test validation
 		checkState := health.NewCheckState(dps3.ServiceName)
@@ -100,7 +101,7 @@ func TestBucketUnexpectedRegion(t *testing.T) {
 		sdkMock := &mock.S3SDKClientMock{
 			HeadBucketFunc: bucketWrongRegion,
 		}
-		cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, ExistingBucket, UnexpectedRegion, nil)
+		cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, ExistingBucket, UnexpectedRegion, aws.Config{})
 
 		// CheckState for test validation
 		checkState := health.NewCheckState(dps3.ServiceName)
@@ -122,7 +123,7 @@ func TestBucketInexistentRegion(t *testing.T) {
 		sdkMock := &mock.S3SDKClientMock{
 			HeadBucketFunc: bucketInexistentRegion,
 		}
-		cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, ExistingBucket, InexistentRegion, nil)
+		cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, ExistingBucket, InexistentRegion, aws.Config{})
 
 		// CheckState for test validation
 		checkState := health.NewCheckState(dps3.ServiceName)

@@ -2,18 +2,21 @@ package s3_test
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"testing"
 
 	dps3 "github.com/ONSdigital/dp-s3/v2"
 	"github.com/ONSdigital/dp-s3/v2/mock"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestPutWithPSK(t *testing.T) {
 
 	Convey("Given an S3 client configured with a bucket, region and psk", t, func() {
+		ctx := context.Background()
 
 		psk := []byte("test psk")
 		payload := []byte("test data")
@@ -24,15 +27,15 @@ func TestPutWithPSK(t *testing.T) {
 		payloadReader := bytes.NewReader(payload)
 
 		cryptoMock := &mock.S3CryptoClientMock{
-			PutObjectWithPSKFunc: func(in1 *s3.PutObjectInput, in2 []byte) (*s3.PutObjectOutput, error) {
+			PutObjectWithPSKFunc: func(ctx context.Context, in1 *s3.PutObjectInput, in2 []byte) (*s3.PutObjectOutput, error) {
 				return &s3.PutObjectOutput{}, nil
 			},
 		}
 
-		cli := dps3.InstantiateClient(nil, cryptoMock, nil, nil, bucket, region, nil)
+		cli := dps3.InstantiateClient(nil, cryptoMock, nil, nil, bucket, region, aws.Config{})
 
 		Convey("PutWithPSK calls the expected cryptoClient with provided key, reader and client-configured bucket", func() {
-			err := cli.PutWithPSK(&objKey, payloadReader, psk)
+			err := cli.PutWithPSK(ctx, &objKey, payloadReader, psk)
 			So(err, ShouldBeNil)
 			So(len(cryptoMock.PutObjectWithPSKCalls()), ShouldEqual, 1)
 			So(cryptoMock.PutObjectWithPSKCalls()[0].In, ShouldResemble, &s3.PutObjectInput{

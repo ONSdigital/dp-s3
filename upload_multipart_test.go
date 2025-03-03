@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-
 	dps3 "github.com/ONSdigital/dp-s3/v2"
 	"github.com/ONSdigital/dp-s3/v2/mock"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -21,7 +21,7 @@ func TestUploadPart(t *testing.T) {
 		bucket := ExistingBucket
 		payload := []byte("test data")
 		testUploadId := "testUploadId"
-		expectedPart := int64(1)
+		expectedPart := int32(1)
 		testKey := "testKey"
 
 		Convey("An error listing multipart uploads results in Upload failing with said error", func() {
@@ -29,13 +29,13 @@ func TestUploadPart(t *testing.T) {
 			// Create S3 client with SDK Mock which fails to ListMultipartUploads
 			listMultipartUploadsErr := errors.New("ListMultipartUploads failed")
 			sdkMock := &mock.S3SDKClientMock{
-				ListMultipartUploadsFunc: func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
 					return nil, listMultipartUploadsErr
 				},
 			}
 
 			// Instantiate and call Upload
-			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, nil)
+			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, aws.Config{})
 			_, err := cli.UploadPart(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   testKey,
 				Type:        "text/plain",
@@ -51,24 +51,23 @@ func TestUploadPart(t *testing.T) {
 			So(*sdkMock.ListMultipartUploadsCalls()[0].In.Bucket, ShouldResemble, ExistingBucket)
 		})
 
-
 		Convey("If the upload S3 object key can be found in the list of multipart upload, Upload will use it", func() {
 
 			// Create S3 client with SDK Mock with empty list of Multipart uploads
 			sdkMock := &mock.S3SDKClientMock{
-				ListMultipartUploadsFunc: func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
 					return createUploads(testUploadId, testKey), nil
 				},
-				UploadPartFunc: func(in1 *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
+				UploadPartFunc: func(ctx context.Context, in1 *s3.UploadPartInput, optFns ...func(*s3.Options)) (*s3.UploadPartOutput, error) {
 					return &s3.UploadPartOutput{ETag: aws.String(`"1234567890"`)}, nil
 				},
-				ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+				ListPartsFunc: func(ctx context.Context, in1 *s3.ListPartsInput, optFns ...func(*s3.Options)) (*s3.ListPartsOutput, error) {
 					return createListPartsOutput(&expectedPart), nil
 				},
 			}
 
 			// Instantiate and call Upload
-			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, nil)
+			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, aws.Config{})
 			response, err := cli.UploadPart(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   testKey,
 				Type:        "text/plain",
@@ -96,24 +95,24 @@ func TestUploadPart(t *testing.T) {
 			// Create S3 client with SDK Mock with empty list of Multipart uploads
 			testUploadId := "testUploadId"
 			testKey := "testKey"
-			expectedPart := int64(1)
+			expectedPart := int32(1)
 			sdkMock := &mock.S3SDKClientMock{
-				ListMultipartUploadsFunc: func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
 					return &s3.ListMultipartUploadsOutput{}, nil
 				},
-				CreateMultipartUploadFunc: func(in1 *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
+				CreateMultipartUploadFunc: func(ctx context.Context, in1 *s3.CreateMultipartUploadInput, optFns ...func(*s3.Options)) (*s3.CreateMultipartUploadOutput, error) {
 					return &s3.CreateMultipartUploadOutput{UploadId: &testUploadId}, nil
 				},
-				UploadPartFunc: func(in1 *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
+				UploadPartFunc: func(ctx context.Context, in1 *s3.UploadPartInput, optFns ...func(*s3.Options)) (*s3.UploadPartOutput, error) {
 					return &s3.UploadPartOutput{ETag: aws.String(`"1234567890"`)}, nil
 				},
-				ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+				ListPartsFunc: func(ctx context.Context, in1 *s3.ListPartsInput, optFns ...func(*s3.Options)) (*s3.ListPartsOutput, error) {
 					return createListPartsOutput(&expectedPart), nil
 				},
 			}
 
 			// Instantiate and call Upload
-			s3Cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, nil)
+			s3Cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, aws.Config{})
 			response, err := s3Cli.UploadPart(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   testKey,
 				Type:        "text/plain",
@@ -141,25 +140,25 @@ func TestUploadPart(t *testing.T) {
 
 			// Create S3 client with SDK Mock with empty list of Multipart uploads
 			sdkMock := &mock.S3SDKClientMock{
-				ListMultipartUploadsFunc: func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
 					return &s3.ListMultipartUploadsOutput{}, nil
 				},
-				CreateMultipartUploadFunc: func(in1 *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
+				CreateMultipartUploadFunc: func(ctx context.Context, in1 *s3.CreateMultipartUploadInput, optFns ...func(*s3.Options)) (*s3.CreateMultipartUploadOutput, error) {
 					return &s3.CreateMultipartUploadOutput{UploadId: &testUploadId}, nil
 				},
-				UploadPartFunc: func(in1 *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
+				UploadPartFunc: func(ctx context.Context, in1 *s3.UploadPartInput, optFns ...func(*s3.Options)) (*s3.UploadPartOutput, error) {
 					return &s3.UploadPartOutput{ETag: aws.String(`"1234567890"`)}, nil
 				},
-				ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+				ListPartsFunc: func(ctx context.Context, in1 *s3.ListPartsInput, optFns ...func(*s3.Options)) (*s3.ListPartsOutput, error) {
 					return createListPartsOutput(&expectedPart), nil
 				},
-				CompleteMultipartUploadFunc: func(input *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error) {
+				CompleteMultipartUploadFunc: func(ctx context.Context, input *s3.CompleteMultipartUploadInput, optFns ...func(*s3.Options)) (*s3.CompleteMultipartUploadOutput, error) {
 					return &s3.CompleteMultipartUploadOutput{}, nil
 				},
 			}
 
 			// Instantiate and call Upload
-			s3Cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, nil)
+			s3Cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, aws.Config{})
 			response, err := s3Cli.UploadPart(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   testKey,
 				Type:        "text/plain",
@@ -189,25 +188,25 @@ func TestUploadPart(t *testing.T) {
 
 			// Create S3 client with SDK Mock with empty list of Multipart uploads
 			sdkMock := &mock.S3SDKClientMock{
-				ListMultipartUploadsFunc: func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
 					return &s3.ListMultipartUploadsOutput{}, nil
 				},
-				CreateMultipartUploadFunc: func(in1 *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
+				CreateMultipartUploadFunc: func(ctx context.Context, in1 *s3.CreateMultipartUploadInput, optFns ...func(*s3.Options)) (*s3.CreateMultipartUploadOutput, error) {
 					return &s3.CreateMultipartUploadOutput{UploadId: &testUploadId}, nil
 				},
-				ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+				ListPartsFunc: func(ctx context.Context, in1 *s3.ListPartsInput, optFns ...func(*s3.Options)) (*s3.ListPartsOutput, error) {
 					return createListPartsOutput(&expectedPart), nil
 				},
 			}
 
 			cryptoMock := &mock.S3CryptoClientMock{
-				UploadPartWithPSKFunc: func(in1 *s3.UploadPartInput, in2 []byte) (*s3.UploadPartOutput, error) {
+				UploadPartWithPSKFunc: func(ctx context.Context, in1 *s3.UploadPartInput, in2 []byte) (*s3.UploadPartOutput, error) {
 					return &s3.UploadPartOutput{ETag: aws.String(`"1234567890"`)}, nil
 				},
 			}
 
 			// Instantiate and call UploadWithPsk
-			s3Cli := dps3.InstantiateClient(sdkMock, cryptoMock, nil, nil, bucket, ExpectedRegion, nil)
+			s3Cli := dps3.InstantiateClient(sdkMock, cryptoMock, nil, nil, bucket, ExpectedRegion, aws.Config{})
 			response, err := s3Cli.UploadPartWithPsk(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   testKey,
 				Type:        "text/plain",
@@ -232,28 +231,28 @@ func TestUploadPart(t *testing.T) {
 
 			// Create S3 client with SDK Mock with empty list of Multipart uploads
 			sdkMock := &mock.S3SDKClientMock{
-				ListMultipartUploadsFunc: func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
 					return &s3.ListMultipartUploadsOutput{}, nil
 				},
-				CreateMultipartUploadFunc: func(in1 *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
+				CreateMultipartUploadFunc: func(ctx context.Context, in1 *s3.CreateMultipartUploadInput, optFns ...func(*s3.Options)) (*s3.CreateMultipartUploadOutput, error) {
 					return &s3.CreateMultipartUploadOutput{UploadId: &testUploadId}, nil
 				},
-				ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+				ListPartsFunc: func(ctx context.Context, in1 *s3.ListPartsInput, optFns ...func(*s3.Options)) (*s3.ListPartsOutput, error) {
 					return createListPartsOutput(&expectedPart), nil
 				},
-				CompleteMultipartUploadFunc: func(input *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error) {
+				CompleteMultipartUploadFunc: func(ctx context.Context, input *s3.CompleteMultipartUploadInput, optFns ...func(*s3.Options)) (*s3.CompleteMultipartUploadOutput, error) {
 					return &s3.CompleteMultipartUploadOutput{}, nil
 				},
 			}
 
 			cryptoMock := &mock.S3CryptoClientMock{
-				UploadPartWithPSKFunc: func(in1 *s3.UploadPartInput, in2 []byte) (*s3.UploadPartOutput, error) {
+				UploadPartWithPSKFunc: func(ctx context.Context, in1 *s3.UploadPartInput, in2 []byte) (*s3.UploadPartOutput, error) {
 					return &s3.UploadPartOutput{ETag: aws.String(`"1234567890"`)}, nil
 				},
 			}
 
 			// Instantiate and call Upload
-			s3Cli := dps3.InstantiateClient(sdkMock, cryptoMock, nil, nil, bucket, ExpectedRegion, nil)
+			s3Cli := dps3.InstantiateClient(sdkMock, cryptoMock, nil, nil, bucket, ExpectedRegion, aws.Config{})
 			response, err := s3Cli.UploadPartWithPsk(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   testKey,
 				Type:        "text/plain",
@@ -288,13 +287,13 @@ func TestCheckUpload(t *testing.T) {
 			// Create S3 client with SDK Mock which fails to ListMultipartUploads
 			listMultipartUploadsErr := errors.New("ListMultipartUploads failed")
 			sdkMock := &mock.S3SDKClientMock{
-				ListMultipartUploadsFunc: func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
 					return nil, listMultipartUploadsErr
 				},
 			}
 
 			// Instantiate and call CheckUpload
-			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, nil)
+			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, aws.Config{})
 			ok, err := cli.CheckPartUploaded(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   "12345",
 				Type:        "text/plain",
@@ -315,13 +314,13 @@ func TestCheckUpload(t *testing.T) {
 
 			// Create S3 client with SDK Mock with empty list of Multipart uploads
 			sdkMock := &mock.S3SDKClientMock{
-				ListMultipartUploadsFunc: func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
 					return &s3.ListMultipartUploadsOutput{}, nil
 				},
 			}
 
 			// Instantiate and call CheckUpload
-			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, nil)
+			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, aws.Config{})
 			ok, err := cli.CheckPartUploaded(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   "12345",
 				Type:        "text/plain",
@@ -350,16 +349,16 @@ func TestCheckUpload(t *testing.T) {
 			expectedUploadID := "myID"
 
 			sdkMock := &mock.S3SDKClientMock{
-				ListMultipartUploadsFunc: func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
 					return createMultipartUploads(in1.Bucket, &expectedKey, &expectedUploadID), nil
 				},
-				ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+				ListPartsFunc: func(ctx context.Context, in1 *s3.ListPartsInput, optFns ...func(*s3.Options)) (*s3.ListPartsOutput, error) {
 					return nil, skdListPartsErr
 				},
 			}
 
 			// Instantiate and call CheckUpload
-			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, nil)
+			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, aws.Config{})
 			ok, err := cli.CheckPartUploaded(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   expectedKey,
 				Type:        "text/plain",
@@ -384,19 +383,19 @@ func TestCheckUpload(t *testing.T) {
 
 			expectedKey := "12345"
 			expectedUploadID := "myID"
-			expectedPart := int64(1)
+			expectedPart := int32(1)
 
 			sdkMock := &mock.S3SDKClientMock{
-				ListMultipartUploadsFunc: func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
 					return createMultipartUploads(in1.Bucket, &expectedKey, &expectedUploadID), nil
 				},
-				ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+				ListPartsFunc: func(ctx context.Context, in1 *s3.ListPartsInput, optFns ...func(*s3.Options)) (*s3.ListPartsOutput, error) {
 					return createListPartsOutput(&expectedPart), nil
 				},
 			}
 
 			// Instantiate and call CheckUpload
-			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, nil)
+			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, aws.Config{})
 			ok, err := cli.CheckPartUploaded(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   expectedKey,
 				Type:        "text/plain",
@@ -420,19 +419,19 @@ func TestCheckUpload(t *testing.T) {
 
 			expectedKey := "12345"
 			expectedUploadID := "myID"
-			unexpectedPart := int64(3)
+			unexpectedPart := int32(3)
 
 			sdkMock := &mock.S3SDKClientMock{
-				ListMultipartUploadsFunc: func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
 					return createMultipartUploads(in1.Bucket, &expectedKey, &expectedUploadID), nil
 				},
-				ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+				ListPartsFunc: func(ctx context.Context, in1 *s3.ListPartsInput, optFns ...func(*s3.Options)) (*s3.ListPartsOutput, error) {
 					return createListPartsOutput(&unexpectedPart), nil
 				},
 			}
 
 			// Instantiate and call CheckUpload
-			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, nil)
+			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, aws.Config{})
 			ok, err := cli.CheckPartUploaded(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   expectedKey,
 				Type:        "text/plain",
@@ -459,22 +458,22 @@ func TestCheckUpload(t *testing.T) {
 
 			expectedKey := "12345"
 			expectedUploadID := "myID"
-			expectedPart := int64(1)
+			expectedPart := int32(1)
 
 			sdkMock := &mock.S3SDKClientMock{
-				ListMultipartUploadsFunc: func(in1 *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
 					return createMultipartUploads(in1.Bucket, &expectedKey, &expectedUploadID), nil
 				},
-				ListPartsFunc: func(in1 *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+				ListPartsFunc: func(ctx context.Context, in1 *s3.ListPartsInput, optFns ...func(*s3.Options)) (*s3.ListPartsOutput, error) {
 					return createListPartsOutput(&expectedPart), nil
 				},
-				CompleteMultipartUploadFunc: func(input *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error) {
+				CompleteMultipartUploadFunc: func(ctx context.Context, input *s3.CompleteMultipartUploadInput, optFns ...func(*s3.Options)) (*s3.CompleteMultipartUploadOutput, error) {
 					return &s3.CompleteMultipartUploadOutput{}, nil
 				},
 			}
 
 			// Instantiate and call CheckUpload
-			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, nil)
+			cli := dps3.InstantiateClient(sdkMock, nil, nil, nil, bucket, ExpectedRegion, aws.Config{})
 			ok, err := cli.CheckPartUploaded(context.Background(), &dps3.UploadPartRequest{
 				UploadKey:   expectedKey,
 				Type:        "text/plain",
@@ -498,10 +497,9 @@ func TestCheckUpload(t *testing.T) {
 	})
 }
 
-// Return a ListMultipartUploadsOutput with a single upload for the provided bucket, key and id
 func createMultipartUploads(bucket, key, id *string) *s3.ListMultipartUploadsOutput {
-	uploads := make([]*s3.MultipartUpload, 0, 1)
-	uploads = append(uploads, &s3.MultipartUpload{
+	uploads := make([]types.MultipartUpload, 0, 1)
+	uploads = append(uploads, types.MultipartUpload{
 		Key:      key,
 		UploadId: id,
 	})
@@ -512,9 +510,9 @@ func createMultipartUploads(bucket, key, id *string) *s3.ListMultipartUploadsOut
 }
 
 // createListPartsOutput returns a ListPartsOutput with a single part, corresponding to the provided partNumber
-func createListPartsOutput(partNumber *int64) *s3.ListPartsOutput {
-	parts := make([]*s3.Part, 0, 1)
-	parts = append(parts, &s3.Part{
+func createListPartsOutput(partNumber *int32) *s3.ListPartsOutput {
+	parts := make([]types.Part, 0, 1)
+	parts = append(parts, types.Part{
 		PartNumber: partNumber,
 	})
 	return &s3.ListPartsOutput{
@@ -524,8 +522,8 @@ func createListPartsOutput(partNumber *int64) *s3.ListPartsOutput {
 
 // createUploads returns a ListMultipartUploadsOutput with a single upload, with the provided uploadID
 func createUploads(uploadID, key string) *s3.ListMultipartUploadsOutput {
-	uploads := make([]*s3.MultipartUpload, 0, 1)
-	uploads = append(uploads, &s3.MultipartUpload{
+	uploads := make([]types.MultipartUpload, 0, 1)
+	uploads = append(uploads, types.MultipartUpload{
 		UploadId: &uploadID,
 		Key:      &key,
 	})
