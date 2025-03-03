@@ -5,33 +5,34 @@ package mock
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-s3/v2"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	v2 "github.com/ONSdigital/dp-s3/v2"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	s3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"sync"
 )
 
-// Ensure, that S3CryptoUploaderMock does implement s3.S3CryptoUploader.
+// Ensure, that S3CryptoUploaderMock does implement v2.S3CryptoUploader.
 // If this is not the case, regenerate this file with moq.
-var _ s3.S3CryptoUploader = &S3CryptoUploaderMock{}
+var _ v2.S3CryptoUploader = &S3CryptoUploaderMock{}
 
-// S3CryptoUploaderMock is a mock implementation of s3.S3CryptoUploader.
+// S3CryptoUploaderMock is a mock implementation of v2.S3CryptoUploader.
 //
 //	func TestSomethingThatUsesS3CryptoUploader(t *testing.T) {
 //
-//		// make and configure a mocked s3.S3CryptoUploader
+//		// make and configure a mocked v2.S3CryptoUploader
 //		mockedS3CryptoUploader := &S3CryptoUploaderMock{
-//			UploadWithPSKFunc: func(ctx context.Context, in *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
+//			UploadWithPSKFunc: func(ctx context.Context, in *s3.PutObjectInput, psk []byte) (*manager.UploadOutput, error) {
 //				panic("mock out the UploadWithPSK method")
 //			},
 //		}
 //
-//		// use mockedS3CryptoUploader in code that requires s3.S3CryptoUploader
+//		// use mockedS3CryptoUploader in code that requires v2.S3CryptoUploader
 //		// and then make assertions.
 //
 //	}
 type S3CryptoUploaderMock struct {
 	// UploadWithPSKFunc mocks the UploadWithPSK method.
-	UploadWithPSKFunc func(ctx context.Context, in *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error)
+	UploadWithPSKFunc func(ctx context.Context, in *s3.PutObjectInput, psk []byte) (*manager.UploadOutput, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -40,7 +41,7 @@ type S3CryptoUploaderMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// In is the in argument value.
-			In *s3manager.UploadInput
+			In *s3.PutObjectInput
 			// Psk is the psk argument value.
 			Psk []byte
 		}
@@ -49,13 +50,13 @@ type S3CryptoUploaderMock struct {
 }
 
 // UploadWithPSK calls UploadWithPSKFunc.
-func (mock *S3CryptoUploaderMock) UploadWithPSK(ctx context.Context, in *s3manager.UploadInput, psk []byte) (*s3manager.UploadOutput, error) {
+func (mock *S3CryptoUploaderMock) UploadWithPSK(ctx context.Context, in *s3.PutObjectInput, psk []byte) (*manager.UploadOutput, error) {
 	if mock.UploadWithPSKFunc == nil {
 		panic("S3CryptoUploaderMock.UploadWithPSKFunc: method is nil but S3CryptoUploader.UploadWithPSK was just called")
 	}
 	callInfo := struct {
 		Ctx context.Context
-		In  *s3manager.UploadInput
+		In  *s3.PutObjectInput
 		Psk []byte
 	}{
 		Ctx: ctx,
@@ -74,12 +75,12 @@ func (mock *S3CryptoUploaderMock) UploadWithPSK(ctx context.Context, in *s3manag
 //	len(mockedS3CryptoUploader.UploadWithPSKCalls())
 func (mock *S3CryptoUploaderMock) UploadWithPSKCalls() []struct {
 	Ctx context.Context
-	In  *s3manager.UploadInput
+	In  *s3.PutObjectInput
 	Psk []byte
 } {
 	var calls []struct {
 		Ctx context.Context
-		In  *s3manager.UploadInput
+		In  *s3.PutObjectInput
 		Psk []byte
 	}
 	mock.lockUploadWithPSK.RLock()

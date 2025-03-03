@@ -4,8 +4,9 @@
 package mock
 
 import (
+	"context"
 	v2 "github.com/ONSdigital/dp-s3/v2"
-	s3 "github.com/aws/aws-sdk-go/service/s3"
+	s3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"sync"
 )
 
@@ -19,37 +20,37 @@ var _ v2.S3SDKClient = &S3SDKClientMock{}
 //
 //		// make and configure a mocked v2.S3SDKClient
 //		mockedS3SDKClient := &S3SDKClientMock{
-//			CompleteMultipartUploadFunc: func(in *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error) {
+//			CompleteMultipartUploadFunc: func(ctx context.Context, in *s3.CompleteMultipartUploadInput, optFns ...func(*s3.Options)) (*s3.CompleteMultipartUploadOutput, error) {
 //				panic("mock out the CompleteMultipartUpload method")
 //			},
-//			CreateMultipartUploadFunc: func(in *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
+//			CreateMultipartUploadFunc: func(ctx context.Context, in *s3.CreateMultipartUploadInput, optFns ...func(*s3.Options)) (*s3.CreateMultipartUploadOutput, error) {
 //				panic("mock out the CreateMultipartUpload method")
 //			},
-//			GetBucketPolicyFunc: func(in *s3.GetBucketPolicyInput) (*s3.GetBucketPolicyOutput, error) {
+//			GetBucketPolicyFunc: func(ctx context.Context, in *s3.GetBucketPolicyInput, optFns ...func(*s3.Options)) (*s3.GetBucketPolicyOutput, error) {
 //				panic("mock out the GetBucketPolicy method")
 //			},
-//			GetObjectFunc: func(in *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
+//			GetObjectFunc: func(ctx context.Context, in *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
 //				panic("mock out the GetObject method")
 //			},
-//			HeadBucketFunc: func(in *s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
+//			HeadBucketFunc: func(ctx context.Context, in *s3.HeadBucketInput, optFns ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
 //				panic("mock out the HeadBucket method")
 //			},
-//			HeadObjectFunc: func(in *s3.HeadObjectInput) (*s3.HeadObjectOutput, error) {
+//			HeadObjectFunc: func(ctx context.Context, in *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error) {
 //				panic("mock out the HeadObject method")
 //			},
-//			ListMultipartUploadsFunc: func(in *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+//			ListMultipartUploadsFunc: func(ctx context.Context, in *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
 //				panic("mock out the ListMultipartUploads method")
 //			},
-//			ListObjectsFunc: func(in *s3.ListObjectsInput) (*s3.ListObjectsOutput, error) {
+//			ListObjectsFunc: func(ctx context.Context, in *s3.ListObjectsInput, optFns ...func(*s3.Options)) (*s3.ListObjectsOutput, error) {
 //				panic("mock out the ListObjects method")
 //			},
-//			ListPartsFunc: func(in *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+//			ListPartsFunc: func(ctx context.Context, in *s3.ListPartsInput, optFns ...func(*s3.Options)) (*s3.ListPartsOutput, error) {
 //				panic("mock out the ListParts method")
 //			},
-//			PutBucketPolicyFunc: func(in *s3.PutBucketPolicyInput) (*s3.PutBucketPolicyOutput, error) {
+//			PutBucketPolicyFunc: func(ctx context.Context, in *s3.PutBucketPolicyInput, optFns ...func(*s3.Options)) (*s3.PutBucketPolicyOutput, error) {
 //				panic("mock out the PutBucketPolicy method")
 //			},
-//			UploadPartFunc: func(in *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
+//			UploadPartFunc: func(ctx context.Context, in *s3.UploadPartInput, optFns ...func(*s3.Options)) (*s3.UploadPartOutput, error) {
 //				panic("mock out the UploadPart method")
 //			},
 //		}
@@ -60,94 +61,138 @@ var _ v2.S3SDKClient = &S3SDKClientMock{}
 //	}
 type S3SDKClientMock struct {
 	// CompleteMultipartUploadFunc mocks the CompleteMultipartUpload method.
-	CompleteMultipartUploadFunc func(in *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error)
+	CompleteMultipartUploadFunc func(ctx context.Context, in *s3.CompleteMultipartUploadInput, optFns ...func(*s3.Options)) (*s3.CompleteMultipartUploadOutput, error)
 
 	// CreateMultipartUploadFunc mocks the CreateMultipartUpload method.
-	CreateMultipartUploadFunc func(in *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error)
+	CreateMultipartUploadFunc func(ctx context.Context, in *s3.CreateMultipartUploadInput, optFns ...func(*s3.Options)) (*s3.CreateMultipartUploadOutput, error)
 
 	// GetBucketPolicyFunc mocks the GetBucketPolicy method.
-	GetBucketPolicyFunc func(in *s3.GetBucketPolicyInput) (*s3.GetBucketPolicyOutput, error)
+	GetBucketPolicyFunc func(ctx context.Context, in *s3.GetBucketPolicyInput, optFns ...func(*s3.Options)) (*s3.GetBucketPolicyOutput, error)
 
 	// GetObjectFunc mocks the GetObject method.
-	GetObjectFunc func(in *s3.GetObjectInput) (*s3.GetObjectOutput, error)
+	GetObjectFunc func(ctx context.Context, in *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 
 	// HeadBucketFunc mocks the HeadBucket method.
-	HeadBucketFunc func(in *s3.HeadBucketInput) (*s3.HeadBucketOutput, error)
+	HeadBucketFunc func(ctx context.Context, in *s3.HeadBucketInput, optFns ...func(*s3.Options)) (*s3.HeadBucketOutput, error)
 
 	// HeadObjectFunc mocks the HeadObject method.
-	HeadObjectFunc func(in *s3.HeadObjectInput) (*s3.HeadObjectOutput, error)
+	HeadObjectFunc func(ctx context.Context, in *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error)
 
 	// ListMultipartUploadsFunc mocks the ListMultipartUploads method.
-	ListMultipartUploadsFunc func(in *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error)
+	ListMultipartUploadsFunc func(ctx context.Context, in *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error)
 
 	// ListObjectsFunc mocks the ListObjects method.
-	ListObjectsFunc func(in *s3.ListObjectsInput) (*s3.ListObjectsOutput, error)
+	ListObjectsFunc func(ctx context.Context, in *s3.ListObjectsInput, optFns ...func(*s3.Options)) (*s3.ListObjectsOutput, error)
 
 	// ListPartsFunc mocks the ListParts method.
-	ListPartsFunc func(in *s3.ListPartsInput) (*s3.ListPartsOutput, error)
+	ListPartsFunc func(ctx context.Context, in *s3.ListPartsInput, optFns ...func(*s3.Options)) (*s3.ListPartsOutput, error)
 
 	// PutBucketPolicyFunc mocks the PutBucketPolicy method.
-	PutBucketPolicyFunc func(in *s3.PutBucketPolicyInput) (*s3.PutBucketPolicyOutput, error)
+	PutBucketPolicyFunc func(ctx context.Context, in *s3.PutBucketPolicyInput, optFns ...func(*s3.Options)) (*s3.PutBucketPolicyOutput, error)
 
 	// UploadPartFunc mocks the UploadPart method.
-	UploadPartFunc func(in *s3.UploadPartInput) (*s3.UploadPartOutput, error)
+	UploadPartFunc func(ctx context.Context, in *s3.UploadPartInput, optFns ...func(*s3.Options)) (*s3.UploadPartOutput, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// CompleteMultipartUpload holds details about calls to the CompleteMultipartUpload method.
 		CompleteMultipartUpload []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// In is the in argument value.
 			In *s3.CompleteMultipartUploadInput
+			// OptFns is the optFns argument value.
+			OptFns []func(*s3.Options)
 		}
 		// CreateMultipartUpload holds details about calls to the CreateMultipartUpload method.
 		CreateMultipartUpload []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// In is the in argument value.
 			In *s3.CreateMultipartUploadInput
+			// OptFns is the optFns argument value.
+			OptFns []func(*s3.Options)
 		}
 		// GetBucketPolicy holds details about calls to the GetBucketPolicy method.
 		GetBucketPolicy []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// In is the in argument value.
 			In *s3.GetBucketPolicyInput
+			// OptFns is the optFns argument value.
+			OptFns []func(*s3.Options)
 		}
 		// GetObject holds details about calls to the GetObject method.
 		GetObject []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// In is the in argument value.
 			In *s3.GetObjectInput
+			// OptFns is the optFns argument value.
+			OptFns []func(*s3.Options)
 		}
 		// HeadBucket holds details about calls to the HeadBucket method.
 		HeadBucket []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// In is the in argument value.
 			In *s3.HeadBucketInput
+			// OptFns is the optFns argument value.
+			OptFns []func(*s3.Options)
 		}
 		// HeadObject holds details about calls to the HeadObject method.
 		HeadObject []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// In is the in argument value.
 			In *s3.HeadObjectInput
+			// OptFns is the optFns argument value.
+			OptFns []func(*s3.Options)
 		}
 		// ListMultipartUploads holds details about calls to the ListMultipartUploads method.
 		ListMultipartUploads []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// In is the in argument value.
 			In *s3.ListMultipartUploadsInput
+			// OptFns is the optFns argument value.
+			OptFns []func(*s3.Options)
 		}
 		// ListObjects holds details about calls to the ListObjects method.
 		ListObjects []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// In is the in argument value.
 			In *s3.ListObjectsInput
+			// OptFns is the optFns argument value.
+			OptFns []func(*s3.Options)
 		}
 		// ListParts holds details about calls to the ListParts method.
 		ListParts []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// In is the in argument value.
 			In *s3.ListPartsInput
+			// OptFns is the optFns argument value.
+			OptFns []func(*s3.Options)
 		}
 		// PutBucketPolicy holds details about calls to the PutBucketPolicy method.
 		PutBucketPolicy []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// In is the in argument value.
 			In *s3.PutBucketPolicyInput
+			// OptFns is the optFns argument value.
+			OptFns []func(*s3.Options)
 		}
 		// UploadPart holds details about calls to the UploadPart method.
 		UploadPart []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// In is the in argument value.
 			In *s3.UploadPartInput
+			// OptFns is the optFns argument value.
+			OptFns []func(*s3.Options)
 		}
 	}
 	lockCompleteMultipartUpload sync.RWMutex
@@ -164,19 +209,23 @@ type S3SDKClientMock struct {
 }
 
 // CompleteMultipartUpload calls CompleteMultipartUploadFunc.
-func (mock *S3SDKClientMock) CompleteMultipartUpload(in *s3.CompleteMultipartUploadInput) (*s3.CompleteMultipartUploadOutput, error) {
+func (mock *S3SDKClientMock) CompleteMultipartUpload(ctx context.Context, in *s3.CompleteMultipartUploadInput, optFns ...func(*s3.Options)) (*s3.CompleteMultipartUploadOutput, error) {
 	if mock.CompleteMultipartUploadFunc == nil {
 		panic("S3SDKClientMock.CompleteMultipartUploadFunc: method is nil but S3SDKClient.CompleteMultipartUpload was just called")
 	}
 	callInfo := struct {
-		In *s3.CompleteMultipartUploadInput
+		Ctx    context.Context
+		In     *s3.CompleteMultipartUploadInput
+		OptFns []func(*s3.Options)
 	}{
-		In: in,
+		Ctx:    ctx,
+		In:     in,
+		OptFns: optFns,
 	}
 	mock.lockCompleteMultipartUpload.Lock()
 	mock.calls.CompleteMultipartUpload = append(mock.calls.CompleteMultipartUpload, callInfo)
 	mock.lockCompleteMultipartUpload.Unlock()
-	return mock.CompleteMultipartUploadFunc(in)
+	return mock.CompleteMultipartUploadFunc(ctx, in, optFns...)
 }
 
 // CompleteMultipartUploadCalls gets all the calls that were made to CompleteMultipartUpload.
@@ -184,10 +233,14 @@ func (mock *S3SDKClientMock) CompleteMultipartUpload(in *s3.CompleteMultipartUpl
 //
 //	len(mockedS3SDKClient.CompleteMultipartUploadCalls())
 func (mock *S3SDKClientMock) CompleteMultipartUploadCalls() []struct {
-	In *s3.CompleteMultipartUploadInput
+	Ctx    context.Context
+	In     *s3.CompleteMultipartUploadInput
+	OptFns []func(*s3.Options)
 } {
 	var calls []struct {
-		In *s3.CompleteMultipartUploadInput
+		Ctx    context.Context
+		In     *s3.CompleteMultipartUploadInput
+		OptFns []func(*s3.Options)
 	}
 	mock.lockCompleteMultipartUpload.RLock()
 	calls = mock.calls.CompleteMultipartUpload
@@ -196,19 +249,23 @@ func (mock *S3SDKClientMock) CompleteMultipartUploadCalls() []struct {
 }
 
 // CreateMultipartUpload calls CreateMultipartUploadFunc.
-func (mock *S3SDKClientMock) CreateMultipartUpload(in *s3.CreateMultipartUploadInput) (*s3.CreateMultipartUploadOutput, error) {
+func (mock *S3SDKClientMock) CreateMultipartUpload(ctx context.Context, in *s3.CreateMultipartUploadInput, optFns ...func(*s3.Options)) (*s3.CreateMultipartUploadOutput, error) {
 	if mock.CreateMultipartUploadFunc == nil {
 		panic("S3SDKClientMock.CreateMultipartUploadFunc: method is nil but S3SDKClient.CreateMultipartUpload was just called")
 	}
 	callInfo := struct {
-		In *s3.CreateMultipartUploadInput
+		Ctx    context.Context
+		In     *s3.CreateMultipartUploadInput
+		OptFns []func(*s3.Options)
 	}{
-		In: in,
+		Ctx:    ctx,
+		In:     in,
+		OptFns: optFns,
 	}
 	mock.lockCreateMultipartUpload.Lock()
 	mock.calls.CreateMultipartUpload = append(mock.calls.CreateMultipartUpload, callInfo)
 	mock.lockCreateMultipartUpload.Unlock()
-	return mock.CreateMultipartUploadFunc(in)
+	return mock.CreateMultipartUploadFunc(ctx, in, optFns...)
 }
 
 // CreateMultipartUploadCalls gets all the calls that were made to CreateMultipartUpload.
@@ -216,10 +273,14 @@ func (mock *S3SDKClientMock) CreateMultipartUpload(in *s3.CreateMultipartUploadI
 //
 //	len(mockedS3SDKClient.CreateMultipartUploadCalls())
 func (mock *S3SDKClientMock) CreateMultipartUploadCalls() []struct {
-	In *s3.CreateMultipartUploadInput
+	Ctx    context.Context
+	In     *s3.CreateMultipartUploadInput
+	OptFns []func(*s3.Options)
 } {
 	var calls []struct {
-		In *s3.CreateMultipartUploadInput
+		Ctx    context.Context
+		In     *s3.CreateMultipartUploadInput
+		OptFns []func(*s3.Options)
 	}
 	mock.lockCreateMultipartUpload.RLock()
 	calls = mock.calls.CreateMultipartUpload
@@ -228,19 +289,23 @@ func (mock *S3SDKClientMock) CreateMultipartUploadCalls() []struct {
 }
 
 // GetBucketPolicy calls GetBucketPolicyFunc.
-func (mock *S3SDKClientMock) GetBucketPolicy(in *s3.GetBucketPolicyInput) (*s3.GetBucketPolicyOutput, error) {
+func (mock *S3SDKClientMock) GetBucketPolicy(ctx context.Context, in *s3.GetBucketPolicyInput, optFns ...func(*s3.Options)) (*s3.GetBucketPolicyOutput, error) {
 	if mock.GetBucketPolicyFunc == nil {
 		panic("S3SDKClientMock.GetBucketPolicyFunc: method is nil but S3SDKClient.GetBucketPolicy was just called")
 	}
 	callInfo := struct {
-		In *s3.GetBucketPolicyInput
+		Ctx    context.Context
+		In     *s3.GetBucketPolicyInput
+		OptFns []func(*s3.Options)
 	}{
-		In: in,
+		Ctx:    ctx,
+		In:     in,
+		OptFns: optFns,
 	}
 	mock.lockGetBucketPolicy.Lock()
 	mock.calls.GetBucketPolicy = append(mock.calls.GetBucketPolicy, callInfo)
 	mock.lockGetBucketPolicy.Unlock()
-	return mock.GetBucketPolicyFunc(in)
+	return mock.GetBucketPolicyFunc(ctx, in, optFns...)
 }
 
 // GetBucketPolicyCalls gets all the calls that were made to GetBucketPolicy.
@@ -248,10 +313,14 @@ func (mock *S3SDKClientMock) GetBucketPolicy(in *s3.GetBucketPolicyInput) (*s3.G
 //
 //	len(mockedS3SDKClient.GetBucketPolicyCalls())
 func (mock *S3SDKClientMock) GetBucketPolicyCalls() []struct {
-	In *s3.GetBucketPolicyInput
+	Ctx    context.Context
+	In     *s3.GetBucketPolicyInput
+	OptFns []func(*s3.Options)
 } {
 	var calls []struct {
-		In *s3.GetBucketPolicyInput
+		Ctx    context.Context
+		In     *s3.GetBucketPolicyInput
+		OptFns []func(*s3.Options)
 	}
 	mock.lockGetBucketPolicy.RLock()
 	calls = mock.calls.GetBucketPolicy
@@ -260,19 +329,23 @@ func (mock *S3SDKClientMock) GetBucketPolicyCalls() []struct {
 }
 
 // GetObject calls GetObjectFunc.
-func (mock *S3SDKClientMock) GetObject(in *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
+func (mock *S3SDKClientMock) GetObject(ctx context.Context, in *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
 	if mock.GetObjectFunc == nil {
 		panic("S3SDKClientMock.GetObjectFunc: method is nil but S3SDKClient.GetObject was just called")
 	}
 	callInfo := struct {
-		In *s3.GetObjectInput
+		Ctx    context.Context
+		In     *s3.GetObjectInput
+		OptFns []func(*s3.Options)
 	}{
-		In: in,
+		Ctx:    ctx,
+		In:     in,
+		OptFns: optFns,
 	}
 	mock.lockGetObject.Lock()
 	mock.calls.GetObject = append(mock.calls.GetObject, callInfo)
 	mock.lockGetObject.Unlock()
-	return mock.GetObjectFunc(in)
+	return mock.GetObjectFunc(ctx, in, optFns...)
 }
 
 // GetObjectCalls gets all the calls that were made to GetObject.
@@ -280,10 +353,14 @@ func (mock *S3SDKClientMock) GetObject(in *s3.GetObjectInput) (*s3.GetObjectOutp
 //
 //	len(mockedS3SDKClient.GetObjectCalls())
 func (mock *S3SDKClientMock) GetObjectCalls() []struct {
-	In *s3.GetObjectInput
+	Ctx    context.Context
+	In     *s3.GetObjectInput
+	OptFns []func(*s3.Options)
 } {
 	var calls []struct {
-		In *s3.GetObjectInput
+		Ctx    context.Context
+		In     *s3.GetObjectInput
+		OptFns []func(*s3.Options)
 	}
 	mock.lockGetObject.RLock()
 	calls = mock.calls.GetObject
@@ -292,19 +369,23 @@ func (mock *S3SDKClientMock) GetObjectCalls() []struct {
 }
 
 // HeadBucket calls HeadBucketFunc.
-func (mock *S3SDKClientMock) HeadBucket(in *s3.HeadBucketInput) (*s3.HeadBucketOutput, error) {
+func (mock *S3SDKClientMock) HeadBucket(ctx context.Context, in *s3.HeadBucketInput, optFns ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
 	if mock.HeadBucketFunc == nil {
 		panic("S3SDKClientMock.HeadBucketFunc: method is nil but S3SDKClient.HeadBucket was just called")
 	}
 	callInfo := struct {
-		In *s3.HeadBucketInput
+		Ctx    context.Context
+		In     *s3.HeadBucketInput
+		OptFns []func(*s3.Options)
 	}{
-		In: in,
+		Ctx:    ctx,
+		In:     in,
+		OptFns: optFns,
 	}
 	mock.lockHeadBucket.Lock()
 	mock.calls.HeadBucket = append(mock.calls.HeadBucket, callInfo)
 	mock.lockHeadBucket.Unlock()
-	return mock.HeadBucketFunc(in)
+	return mock.HeadBucketFunc(ctx, in, optFns...)
 }
 
 // HeadBucketCalls gets all the calls that were made to HeadBucket.
@@ -312,10 +393,14 @@ func (mock *S3SDKClientMock) HeadBucket(in *s3.HeadBucketInput) (*s3.HeadBucketO
 //
 //	len(mockedS3SDKClient.HeadBucketCalls())
 func (mock *S3SDKClientMock) HeadBucketCalls() []struct {
-	In *s3.HeadBucketInput
+	Ctx    context.Context
+	In     *s3.HeadBucketInput
+	OptFns []func(*s3.Options)
 } {
 	var calls []struct {
-		In *s3.HeadBucketInput
+		Ctx    context.Context
+		In     *s3.HeadBucketInput
+		OptFns []func(*s3.Options)
 	}
 	mock.lockHeadBucket.RLock()
 	calls = mock.calls.HeadBucket
@@ -324,19 +409,23 @@ func (mock *S3SDKClientMock) HeadBucketCalls() []struct {
 }
 
 // HeadObject calls HeadObjectFunc.
-func (mock *S3SDKClientMock) HeadObject(in *s3.HeadObjectInput) (*s3.HeadObjectOutput, error) {
+func (mock *S3SDKClientMock) HeadObject(ctx context.Context, in *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error) {
 	if mock.HeadObjectFunc == nil {
 		panic("S3SDKClientMock.HeadObjectFunc: method is nil but S3SDKClient.HeadObject was just called")
 	}
 	callInfo := struct {
-		In *s3.HeadObjectInput
+		Ctx    context.Context
+		In     *s3.HeadObjectInput
+		OptFns []func(*s3.Options)
 	}{
-		In: in,
+		Ctx:    ctx,
+		In:     in,
+		OptFns: optFns,
 	}
 	mock.lockHeadObject.Lock()
 	mock.calls.HeadObject = append(mock.calls.HeadObject, callInfo)
 	mock.lockHeadObject.Unlock()
-	return mock.HeadObjectFunc(in)
+	return mock.HeadObjectFunc(ctx, in, optFns...)
 }
 
 // HeadObjectCalls gets all the calls that were made to HeadObject.
@@ -344,10 +433,14 @@ func (mock *S3SDKClientMock) HeadObject(in *s3.HeadObjectInput) (*s3.HeadObjectO
 //
 //	len(mockedS3SDKClient.HeadObjectCalls())
 func (mock *S3SDKClientMock) HeadObjectCalls() []struct {
-	In *s3.HeadObjectInput
+	Ctx    context.Context
+	In     *s3.HeadObjectInput
+	OptFns []func(*s3.Options)
 } {
 	var calls []struct {
-		In *s3.HeadObjectInput
+		Ctx    context.Context
+		In     *s3.HeadObjectInput
+		OptFns []func(*s3.Options)
 	}
 	mock.lockHeadObject.RLock()
 	calls = mock.calls.HeadObject
@@ -356,19 +449,23 @@ func (mock *S3SDKClientMock) HeadObjectCalls() []struct {
 }
 
 // ListMultipartUploads calls ListMultipartUploadsFunc.
-func (mock *S3SDKClientMock) ListMultipartUploads(in *s3.ListMultipartUploadsInput) (*s3.ListMultipartUploadsOutput, error) {
+func (mock *S3SDKClientMock) ListMultipartUploads(ctx context.Context, in *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
 	if mock.ListMultipartUploadsFunc == nil {
 		panic("S3SDKClientMock.ListMultipartUploadsFunc: method is nil but S3SDKClient.ListMultipartUploads was just called")
 	}
 	callInfo := struct {
-		In *s3.ListMultipartUploadsInput
+		Ctx    context.Context
+		In     *s3.ListMultipartUploadsInput
+		OptFns []func(*s3.Options)
 	}{
-		In: in,
+		Ctx:    ctx,
+		In:     in,
+		OptFns: optFns,
 	}
 	mock.lockListMultipartUploads.Lock()
 	mock.calls.ListMultipartUploads = append(mock.calls.ListMultipartUploads, callInfo)
 	mock.lockListMultipartUploads.Unlock()
-	return mock.ListMultipartUploadsFunc(in)
+	return mock.ListMultipartUploadsFunc(ctx, in, optFns...)
 }
 
 // ListMultipartUploadsCalls gets all the calls that were made to ListMultipartUploads.
@@ -376,10 +473,14 @@ func (mock *S3SDKClientMock) ListMultipartUploads(in *s3.ListMultipartUploadsInp
 //
 //	len(mockedS3SDKClient.ListMultipartUploadsCalls())
 func (mock *S3SDKClientMock) ListMultipartUploadsCalls() []struct {
-	In *s3.ListMultipartUploadsInput
+	Ctx    context.Context
+	In     *s3.ListMultipartUploadsInput
+	OptFns []func(*s3.Options)
 } {
 	var calls []struct {
-		In *s3.ListMultipartUploadsInput
+		Ctx    context.Context
+		In     *s3.ListMultipartUploadsInput
+		OptFns []func(*s3.Options)
 	}
 	mock.lockListMultipartUploads.RLock()
 	calls = mock.calls.ListMultipartUploads
@@ -388,19 +489,23 @@ func (mock *S3SDKClientMock) ListMultipartUploadsCalls() []struct {
 }
 
 // ListObjects calls ListObjectsFunc.
-func (mock *S3SDKClientMock) ListObjects(in *s3.ListObjectsInput) (*s3.ListObjectsOutput, error) {
+func (mock *S3SDKClientMock) ListObjects(ctx context.Context, in *s3.ListObjectsInput, optFns ...func(*s3.Options)) (*s3.ListObjectsOutput, error) {
 	if mock.ListObjectsFunc == nil {
 		panic("S3SDKClientMock.ListObjectsFunc: method is nil but S3SDKClient.ListObjects was just called")
 	}
 	callInfo := struct {
-		In *s3.ListObjectsInput
+		Ctx    context.Context
+		In     *s3.ListObjectsInput
+		OptFns []func(*s3.Options)
 	}{
-		In: in,
+		Ctx:    ctx,
+		In:     in,
+		OptFns: optFns,
 	}
 	mock.lockListObjects.Lock()
 	mock.calls.ListObjects = append(mock.calls.ListObjects, callInfo)
 	mock.lockListObjects.Unlock()
-	return mock.ListObjectsFunc(in)
+	return mock.ListObjectsFunc(ctx, in, optFns...)
 }
 
 // ListObjectsCalls gets all the calls that were made to ListObjects.
@@ -408,10 +513,14 @@ func (mock *S3SDKClientMock) ListObjects(in *s3.ListObjectsInput) (*s3.ListObjec
 //
 //	len(mockedS3SDKClient.ListObjectsCalls())
 func (mock *S3SDKClientMock) ListObjectsCalls() []struct {
-	In *s3.ListObjectsInput
+	Ctx    context.Context
+	In     *s3.ListObjectsInput
+	OptFns []func(*s3.Options)
 } {
 	var calls []struct {
-		In *s3.ListObjectsInput
+		Ctx    context.Context
+		In     *s3.ListObjectsInput
+		OptFns []func(*s3.Options)
 	}
 	mock.lockListObjects.RLock()
 	calls = mock.calls.ListObjects
@@ -420,19 +529,23 @@ func (mock *S3SDKClientMock) ListObjectsCalls() []struct {
 }
 
 // ListParts calls ListPartsFunc.
-func (mock *S3SDKClientMock) ListParts(in *s3.ListPartsInput) (*s3.ListPartsOutput, error) {
+func (mock *S3SDKClientMock) ListParts(ctx context.Context, in *s3.ListPartsInput, optFns ...func(*s3.Options)) (*s3.ListPartsOutput, error) {
 	if mock.ListPartsFunc == nil {
 		panic("S3SDKClientMock.ListPartsFunc: method is nil but S3SDKClient.ListParts was just called")
 	}
 	callInfo := struct {
-		In *s3.ListPartsInput
+		Ctx    context.Context
+		In     *s3.ListPartsInput
+		OptFns []func(*s3.Options)
 	}{
-		In: in,
+		Ctx:    ctx,
+		In:     in,
+		OptFns: optFns,
 	}
 	mock.lockListParts.Lock()
 	mock.calls.ListParts = append(mock.calls.ListParts, callInfo)
 	mock.lockListParts.Unlock()
-	return mock.ListPartsFunc(in)
+	return mock.ListPartsFunc(ctx, in, optFns...)
 }
 
 // ListPartsCalls gets all the calls that were made to ListParts.
@@ -440,10 +553,14 @@ func (mock *S3SDKClientMock) ListParts(in *s3.ListPartsInput) (*s3.ListPartsOutp
 //
 //	len(mockedS3SDKClient.ListPartsCalls())
 func (mock *S3SDKClientMock) ListPartsCalls() []struct {
-	In *s3.ListPartsInput
+	Ctx    context.Context
+	In     *s3.ListPartsInput
+	OptFns []func(*s3.Options)
 } {
 	var calls []struct {
-		In *s3.ListPartsInput
+		Ctx    context.Context
+		In     *s3.ListPartsInput
+		OptFns []func(*s3.Options)
 	}
 	mock.lockListParts.RLock()
 	calls = mock.calls.ListParts
@@ -452,19 +569,23 @@ func (mock *S3SDKClientMock) ListPartsCalls() []struct {
 }
 
 // PutBucketPolicy calls PutBucketPolicyFunc.
-func (mock *S3SDKClientMock) PutBucketPolicy(in *s3.PutBucketPolicyInput) (*s3.PutBucketPolicyOutput, error) {
+func (mock *S3SDKClientMock) PutBucketPolicy(ctx context.Context, in *s3.PutBucketPolicyInput, optFns ...func(*s3.Options)) (*s3.PutBucketPolicyOutput, error) {
 	if mock.PutBucketPolicyFunc == nil {
 		panic("S3SDKClientMock.PutBucketPolicyFunc: method is nil but S3SDKClient.PutBucketPolicy was just called")
 	}
 	callInfo := struct {
-		In *s3.PutBucketPolicyInput
+		Ctx    context.Context
+		In     *s3.PutBucketPolicyInput
+		OptFns []func(*s3.Options)
 	}{
-		In: in,
+		Ctx:    ctx,
+		In:     in,
+		OptFns: optFns,
 	}
 	mock.lockPutBucketPolicy.Lock()
 	mock.calls.PutBucketPolicy = append(mock.calls.PutBucketPolicy, callInfo)
 	mock.lockPutBucketPolicy.Unlock()
-	return mock.PutBucketPolicyFunc(in)
+	return mock.PutBucketPolicyFunc(ctx, in, optFns...)
 }
 
 // PutBucketPolicyCalls gets all the calls that were made to PutBucketPolicy.
@@ -472,10 +593,14 @@ func (mock *S3SDKClientMock) PutBucketPolicy(in *s3.PutBucketPolicyInput) (*s3.P
 //
 //	len(mockedS3SDKClient.PutBucketPolicyCalls())
 func (mock *S3SDKClientMock) PutBucketPolicyCalls() []struct {
-	In *s3.PutBucketPolicyInput
+	Ctx    context.Context
+	In     *s3.PutBucketPolicyInput
+	OptFns []func(*s3.Options)
 } {
 	var calls []struct {
-		In *s3.PutBucketPolicyInput
+		Ctx    context.Context
+		In     *s3.PutBucketPolicyInput
+		OptFns []func(*s3.Options)
 	}
 	mock.lockPutBucketPolicy.RLock()
 	calls = mock.calls.PutBucketPolicy
@@ -484,19 +609,23 @@ func (mock *S3SDKClientMock) PutBucketPolicyCalls() []struct {
 }
 
 // UploadPart calls UploadPartFunc.
-func (mock *S3SDKClientMock) UploadPart(in *s3.UploadPartInput) (*s3.UploadPartOutput, error) {
+func (mock *S3SDKClientMock) UploadPart(ctx context.Context, in *s3.UploadPartInput, optFns ...func(*s3.Options)) (*s3.UploadPartOutput, error) {
 	if mock.UploadPartFunc == nil {
 		panic("S3SDKClientMock.UploadPartFunc: method is nil but S3SDKClient.UploadPart was just called")
 	}
 	callInfo := struct {
-		In *s3.UploadPartInput
+		Ctx    context.Context
+		In     *s3.UploadPartInput
+		OptFns []func(*s3.Options)
 	}{
-		In: in,
+		Ctx:    ctx,
+		In:     in,
+		OptFns: optFns,
 	}
 	mock.lockUploadPart.Lock()
 	mock.calls.UploadPart = append(mock.calls.UploadPart, callInfo)
 	mock.lockUploadPart.Unlock()
-	return mock.UploadPartFunc(in)
+	return mock.UploadPartFunc(ctx, in, optFns...)
 }
 
 // UploadPartCalls gets all the calls that were made to UploadPart.
@@ -504,10 +633,14 @@ func (mock *S3SDKClientMock) UploadPart(in *s3.UploadPartInput) (*s3.UploadPartO
 //
 //	len(mockedS3SDKClient.UploadPartCalls())
 func (mock *S3SDKClientMock) UploadPartCalls() []struct {
-	In *s3.UploadPartInput
+	Ctx    context.Context
+	In     *s3.UploadPartInput
+	OptFns []func(*s3.Options)
 } {
 	var calls []struct {
-		In *s3.UploadPartInput
+		Ctx    context.Context
+		In     *s3.UploadPartInput
+		OptFns []func(*s3.Options)
 	}
 	mock.lockUploadPart.RLock()
 	calls = mock.calls.UploadPart

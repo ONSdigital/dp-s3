@@ -4,8 +4,9 @@
 package mock
 
 import (
+	"context"
 	v2 "github.com/ONSdigital/dp-s3/v2"
-	s3 "github.com/aws/aws-sdk-go/service/s3"
+	s3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"sync"
 )
 
@@ -19,13 +20,13 @@ var _ v2.S3CryptoClient = &S3CryptoClientMock{}
 //
 //		// make and configure a mocked v2.S3CryptoClient
 //		mockedS3CryptoClient := &S3CryptoClientMock{
-//			GetObjectWithPSKFunc: func(in *s3.GetObjectInput, psk []byte) (*s3.GetObjectOutput, error) {
+//			GetObjectWithPSKFunc: func(ctx context.Context, in *s3.GetObjectInput, psk []byte) (*s3.GetObjectOutput, error) {
 //				panic("mock out the GetObjectWithPSK method")
 //			},
-//			PutObjectWithPSKFunc: func(in *s3.PutObjectInput, psk []byte) (*s3.PutObjectOutput, error) {
+//			PutObjectWithPSKFunc: func(ctx context.Context, in *s3.PutObjectInput, psk []byte) (*s3.PutObjectOutput, error) {
 //				panic("mock out the PutObjectWithPSK method")
 //			},
-//			UploadPartWithPSKFunc: func(in *s3.UploadPartInput, psk []byte) (*s3.UploadPartOutput, error) {
+//			UploadPartWithPSKFunc: func(ctx context.Context, in *s3.UploadPartInput, psk []byte) (*s3.UploadPartOutput, error) {
 //				panic("mock out the UploadPartWithPSK method")
 //			},
 //		}
@@ -36,18 +37,20 @@ var _ v2.S3CryptoClient = &S3CryptoClientMock{}
 //	}
 type S3CryptoClientMock struct {
 	// GetObjectWithPSKFunc mocks the GetObjectWithPSK method.
-	GetObjectWithPSKFunc func(in *s3.GetObjectInput, psk []byte) (*s3.GetObjectOutput, error)
+	GetObjectWithPSKFunc func(ctx context.Context, in *s3.GetObjectInput, psk []byte) (*s3.GetObjectOutput, error)
 
 	// PutObjectWithPSKFunc mocks the PutObjectWithPSK method.
-	PutObjectWithPSKFunc func(in *s3.PutObjectInput, psk []byte) (*s3.PutObjectOutput, error)
+	PutObjectWithPSKFunc func(ctx context.Context, in *s3.PutObjectInput, psk []byte) (*s3.PutObjectOutput, error)
 
 	// UploadPartWithPSKFunc mocks the UploadPartWithPSK method.
-	UploadPartWithPSKFunc func(in *s3.UploadPartInput, psk []byte) (*s3.UploadPartOutput, error)
+	UploadPartWithPSKFunc func(ctx context.Context, in *s3.UploadPartInput, psk []byte) (*s3.UploadPartOutput, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// GetObjectWithPSK holds details about calls to the GetObjectWithPSK method.
 		GetObjectWithPSK []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// In is the in argument value.
 			In *s3.GetObjectInput
 			// Psk is the psk argument value.
@@ -55,6 +58,8 @@ type S3CryptoClientMock struct {
 		}
 		// PutObjectWithPSK holds details about calls to the PutObjectWithPSK method.
 		PutObjectWithPSK []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// In is the in argument value.
 			In *s3.PutObjectInput
 			// Psk is the psk argument value.
@@ -62,6 +67,8 @@ type S3CryptoClientMock struct {
 		}
 		// UploadPartWithPSK holds details about calls to the UploadPartWithPSK method.
 		UploadPartWithPSK []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// In is the in argument value.
 			In *s3.UploadPartInput
 			// Psk is the psk argument value.
@@ -74,21 +81,23 @@ type S3CryptoClientMock struct {
 }
 
 // GetObjectWithPSK calls GetObjectWithPSKFunc.
-func (mock *S3CryptoClientMock) GetObjectWithPSK(in *s3.GetObjectInput, psk []byte) (*s3.GetObjectOutput, error) {
+func (mock *S3CryptoClientMock) GetObjectWithPSK(ctx context.Context, in *s3.GetObjectInput, psk []byte) (*s3.GetObjectOutput, error) {
 	if mock.GetObjectWithPSKFunc == nil {
 		panic("S3CryptoClientMock.GetObjectWithPSKFunc: method is nil but S3CryptoClient.GetObjectWithPSK was just called")
 	}
 	callInfo := struct {
+		Ctx context.Context
 		In  *s3.GetObjectInput
 		Psk []byte
 	}{
+		Ctx: ctx,
 		In:  in,
 		Psk: psk,
 	}
 	mock.lockGetObjectWithPSK.Lock()
 	mock.calls.GetObjectWithPSK = append(mock.calls.GetObjectWithPSK, callInfo)
 	mock.lockGetObjectWithPSK.Unlock()
-	return mock.GetObjectWithPSKFunc(in, psk)
+	return mock.GetObjectWithPSKFunc(ctx, in, psk)
 }
 
 // GetObjectWithPSKCalls gets all the calls that were made to GetObjectWithPSK.
@@ -96,10 +105,12 @@ func (mock *S3CryptoClientMock) GetObjectWithPSK(in *s3.GetObjectInput, psk []by
 //
 //	len(mockedS3CryptoClient.GetObjectWithPSKCalls())
 func (mock *S3CryptoClientMock) GetObjectWithPSKCalls() []struct {
+	Ctx context.Context
 	In  *s3.GetObjectInput
 	Psk []byte
 } {
 	var calls []struct {
+		Ctx context.Context
 		In  *s3.GetObjectInput
 		Psk []byte
 	}
@@ -110,21 +121,23 @@ func (mock *S3CryptoClientMock) GetObjectWithPSKCalls() []struct {
 }
 
 // PutObjectWithPSK calls PutObjectWithPSKFunc.
-func (mock *S3CryptoClientMock) PutObjectWithPSK(in *s3.PutObjectInput, psk []byte) (*s3.PutObjectOutput, error) {
+func (mock *S3CryptoClientMock) PutObjectWithPSK(ctx context.Context, in *s3.PutObjectInput, psk []byte) (*s3.PutObjectOutput, error) {
 	if mock.PutObjectWithPSKFunc == nil {
 		panic("S3CryptoClientMock.PutObjectWithPSKFunc: method is nil but S3CryptoClient.PutObjectWithPSK was just called")
 	}
 	callInfo := struct {
+		Ctx context.Context
 		In  *s3.PutObjectInput
 		Psk []byte
 	}{
+		Ctx: ctx,
 		In:  in,
 		Psk: psk,
 	}
 	mock.lockPutObjectWithPSK.Lock()
 	mock.calls.PutObjectWithPSK = append(mock.calls.PutObjectWithPSK, callInfo)
 	mock.lockPutObjectWithPSK.Unlock()
-	return mock.PutObjectWithPSKFunc(in, psk)
+	return mock.PutObjectWithPSKFunc(ctx, in, psk)
 }
 
 // PutObjectWithPSKCalls gets all the calls that were made to PutObjectWithPSK.
@@ -132,10 +145,12 @@ func (mock *S3CryptoClientMock) PutObjectWithPSK(in *s3.PutObjectInput, psk []by
 //
 //	len(mockedS3CryptoClient.PutObjectWithPSKCalls())
 func (mock *S3CryptoClientMock) PutObjectWithPSKCalls() []struct {
+	Ctx context.Context
 	In  *s3.PutObjectInput
 	Psk []byte
 } {
 	var calls []struct {
+		Ctx context.Context
 		In  *s3.PutObjectInput
 		Psk []byte
 	}
@@ -146,21 +161,23 @@ func (mock *S3CryptoClientMock) PutObjectWithPSKCalls() []struct {
 }
 
 // UploadPartWithPSK calls UploadPartWithPSKFunc.
-func (mock *S3CryptoClientMock) UploadPartWithPSK(in *s3.UploadPartInput, psk []byte) (*s3.UploadPartOutput, error) {
+func (mock *S3CryptoClientMock) UploadPartWithPSK(ctx context.Context, in *s3.UploadPartInput, psk []byte) (*s3.UploadPartOutput, error) {
 	if mock.UploadPartWithPSKFunc == nil {
 		panic("S3CryptoClientMock.UploadPartWithPSKFunc: method is nil but S3CryptoClient.UploadPartWithPSK was just called")
 	}
 	callInfo := struct {
+		Ctx context.Context
 		In  *s3.UploadPartInput
 		Psk []byte
 	}{
+		Ctx: ctx,
 		In:  in,
 		Psk: psk,
 	}
 	mock.lockUploadPartWithPSK.Lock()
 	mock.calls.UploadPartWithPSK = append(mock.calls.UploadPartWithPSK, callInfo)
 	mock.lockUploadPartWithPSK.Unlock()
-	return mock.UploadPartWithPSKFunc(in, psk)
+	return mock.UploadPartWithPSKFunc(ctx, in, psk)
 }
 
 // UploadPartWithPSKCalls gets all the calls that were made to UploadPartWithPSK.
@@ -168,10 +185,12 @@ func (mock *S3CryptoClientMock) UploadPartWithPSK(in *s3.UploadPartInput, psk []
 //
 //	len(mockedS3CryptoClient.UploadPartWithPSKCalls())
 func (mock *S3CryptoClientMock) UploadPartWithPSKCalls() []struct {
+	Ctx context.Context
 	In  *s3.UploadPartInput
 	Psk []byte
 } {
 	var calls []struct {
+		Ctx context.Context
 		In  *s3.UploadPartInput
 		Psk []byte
 	}
