@@ -9,7 +9,6 @@ import (
 )
 
 func TestFullyDefinedUrl(t *testing.T) {
-
 	const expectedBucketName = "csv-bucket"
 	const expectedKey = "dir1/test-file.csv"
 	const expectedRegion = "eu-west-1"
@@ -62,7 +61,6 @@ func TestFullyDefinedUrl(t *testing.T) {
 }
 
 func TestNoRegionUrl(t *testing.T) {
-
 	const expectedBucketName = "csv-bucket"
 	const expectedKey = "dir1/test-file.csv"
 
@@ -110,13 +108,11 @@ func TestNoRegionUrl(t *testing.T) {
 }
 
 func TestParsing(t *testing.T) {
-
 	const expectedBucketName = "csv-bucket"
 	const expectedKey = "dir1/test-file.csv"
 	const expectedRegion = "eu-west-1"
 
 	Convey("Given S3 raw url strings in different acceptable formats", t, func() {
-
 		expectedRegionalHttpsUrl, err := dps3.NewURL(expectedRegion, expectedBucketName, expectedKey)
 		So(err, ShouldBeNil)
 		expectedRegionalS3Url, err := dps3.NewURLWithScheme("s3", expectedRegion, expectedBucketName, expectedKey)
@@ -216,7 +212,6 @@ func TestParsing(t *testing.T) {
 }
 
 func TestNewURL(t *testing.T) {
-
 	const expectedBucketName = "csv-bucket"
 	const expectedKey = "dir1/test-file.csv"
 	const expectedRegion = "eu-west-1"

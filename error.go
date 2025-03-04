@@ -28,7 +28,7 @@ func (e *S3Error) Error() string {
 
 // LogData implements the DataLogger interface which allows you extract
 // embedded log.Data from an
-//error
+// error
 func (e *S3Error) LogData() map[string]interface{} {
 	if e.logData == nil {
 		return log.Data{}

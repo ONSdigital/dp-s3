@@ -15,9 +15,7 @@ import (
 )
 
 func TestUploadPart(t *testing.T) {
-
 	Convey("Given an S3 client with the intention of performing a multi-part upload", t, func() {
-
 		bucket := ExistingBucket
 		payload := []byte("test data")
 		testUploadId := "testUploadId"
@@ -25,7 +23,6 @@ func TestUploadPart(t *testing.T) {
 		testKey := "testKey"
 
 		Convey("An error listing multipart uploads results in Upload failing with said error", func() {
-
 			// Create S3 client with SDK Mock which fails to ListMultipartUploads
 			listMultipartUploadsErr := errors.New("ListMultipartUploads failed")
 			sdkMock := &mock.S3SDKClientMock{
@@ -52,7 +49,6 @@ func TestUploadPart(t *testing.T) {
 		})
 
 		Convey("If the upload S3 object key can be found in the list of multipart upload, Upload will use it", func() {
-
 			// Create S3 client with SDK Mock with empty list of Multipart uploads
 			sdkMock := &mock.S3SDKClientMock{
 				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
@@ -91,7 +87,6 @@ func TestUploadPart(t *testing.T) {
 
 		Convey("If the upload S3 object key cannot be found in the list of multipart uploads, Upload will create a new one, "+
 			"and don't complete it if some chunks have not been uploaded yet", func() {
-
 			// Create S3 client with SDK Mock with empty list of Multipart uploads
 			testUploadId := "testUploadId"
 			testKey := "testKey"
@@ -137,7 +132,6 @@ func TestUploadPart(t *testing.T) {
 
 		Convey("If the upload S3 object key cannot be found in the list of multipart uploads, Upload will create a new one, "+
 			"and complete it if all chunks have been uploaded", func() {
-
 			// Create S3 client with SDK Mock with empty list of Multipart uploads
 			sdkMock := &mock.S3SDKClientMock{
 				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
@@ -183,7 +177,6 @@ func TestUploadPart(t *testing.T) {
 		})
 
 		Convey("UploadWithPsk performs an upload with the provided PSK", func() {
-
 			psk := []byte("test psk")
 
 			// Create S3 client with SDK Mock with empty list of Multipart uploads
@@ -228,7 +221,6 @@ func TestUploadPart(t *testing.T) {
 
 		Convey("UploadWithPsk performs an upload with the provided PSK - all parts uploaded", func() {
 			psk := []byte("test psk")
-
 			// Create S3 client with SDK Mock with empty list of Multipart uploads
 			sdkMock := &mock.S3SDKClientMock{
 				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
@@ -276,14 +268,11 @@ func TestUploadPart(t *testing.T) {
 }
 
 func TestCheckUpload(t *testing.T) {
-
 	Convey("Given an S3 client with the intention of checking if a chunk has been uploaded in a multipart upload", t, func() {
-
 		bucket := ExistingBucket
 
 		filename := "helloworld"
 		Convey("An error listing multipart uploads results in CheckUplaod failing with said error", func() {
-
 			// Create S3 client with SDK Mock which fails to ListMultipartUploads
 			listMultipartUploadsErr := errors.New("ListMultipartUploads failed")
 			sdkMock := &mock.S3SDKClientMock{
@@ -311,7 +300,6 @@ func TestCheckUpload(t *testing.T) {
 		})
 
 		Convey("If the upload S3 object key cannot be found in the list of multipart uploads, then the CheckUpload will fail with a ErrNotUploaded error", func() {
-
 			// Create S3 client with SDK Mock with empty list of Multipart uploads
 			sdkMock := &mock.S3SDKClientMock{
 				ListMultipartUploadsFunc: func(ctx context.Context, in1 *s3.ListMultipartUploadsInput, optFns ...func(*s3.Options)) (*s3.ListMultipartUploadsOutput, error) {
@@ -341,7 +329,6 @@ func TestCheckUpload(t *testing.T) {
 		})
 
 		Convey("An error listing parts for a particular multipart upload results in ErrListParts error", func() {
-
 			// Create S3 client with SDK Mock which fails to ListParts for a valid multipart upload
 			skdListPartsErr := errors.New("ListMultipartUploads failed")
 
@@ -380,7 +367,6 @@ func TestCheckUpload(t *testing.T) {
 		})
 
 		Convey("If the chunk has been uploaded but the multipart upload is not completed yet, then the function should return true", func() {
-
 			expectedKey := "12345"
 			expectedUploadID := "myID"
 			expectedPart := int32(1)
@@ -416,7 +402,6 @@ func TestCheckUpload(t *testing.T) {
 		})
 
 		Convey("Provided chunk not being found in the list of parts results in ErrChunkNumberNotFound being returned", func() {
-
 			expectedKey := "12345"
 			expectedUploadID := "myID"
 			unexpectedPart := int32(3)
@@ -455,7 +440,6 @@ func TestCheckUpload(t *testing.T) {
 		})
 
 		Convey("Provided chunk being successfully uploaded as part of a completed multipart upload results in the function completing the upload and returning true", func() {
-
 			expectedKey := "12345"
 			expectedUploadID := "myID"
 			expectedPart := int32(1)

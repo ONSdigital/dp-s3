@@ -52,7 +52,6 @@ func bucketInexistentRegion(ctx context.Context, input *s3.HeadBucketInput, opts
 
 func TestBucketOk(t *testing.T) {
 	Convey("Given that S3 client is available, bucket exists and it was created in the same region as the S3 client config", t, func() {
-
 		// Create S3 client with SDK Mock for existing bucket
 		sdkMock := &mock.S3SDKClientMock{
 			HeadBucketFunc: bucketExists,
@@ -74,7 +73,6 @@ func TestBucketOk(t *testing.T) {
 
 func TestBucketDoesNotExist(t *testing.T) {
 	Convey("Given that S3 client is available and bucket does not exist", t, func() {
-
 		// Create S3 client with SDK Mock for inexistent bucket
 		sdkMock := &mock.S3SDKClientMock{
 			HeadBucketFunc: bucketDoesNotExist,
@@ -96,7 +94,6 @@ func TestBucketDoesNotExist(t *testing.T) {
 
 func TestBucketUnexpectedRegion(t *testing.T) {
 	Convey("Given that S3 client is available and bucket was created in a different region than the S3 client config", t, func() {
-
 		// Create S3 client with SDK Mock for unexpected region for bucket
 		sdkMock := &mock.S3SDKClientMock{
 			HeadBucketFunc: bucketWrongRegion,
@@ -118,7 +115,6 @@ func TestBucketUnexpectedRegion(t *testing.T) {
 
 func TestBucketInexistentRegion(t *testing.T) {
 	Convey("Given that S3 client is available, bucket exists, but S3 is configured with an inexistent region", t, func() {
-
 		// Create S3 client with SDK Mock for inexistent region
 		sdkMock := &mock.S3SDKClientMock{
 			HeadBucketFunc: bucketInexistentRegion,

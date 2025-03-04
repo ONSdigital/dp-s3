@@ -21,7 +21,6 @@ import (
 )
 
 func TestGet(t *testing.T) {
-
 	Convey("Given an S3 client configured with a bucket and region", t, func() {
 		ctx := context.Background()
 

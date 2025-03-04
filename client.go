@@ -1,9 +1,9 @@
 // file: client.go
 //
 // Contains the Client struct definition and constructors,
-// as well as getters to read some private fields like bucketName or session.
+// as well as getters to read some private fields like bucketName or cfg.
 //
-// If multiple clients are required, it is advised to reuse the same AWS session.
+// If multiple clients are required, it is advised to reuse the same AWS config.
 package s3
 
 import (
@@ -21,7 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-// Client client with SDK client, CryptoClient and BucketName
+// Client: client with sdkClient, cryptoClient, sdkUploader, cryptoUploader, bucketName, region, mutexUploadID and cfg
 type Client struct {
 	sdkClient      S3SDKClient
 	cryptoClient   S3CryptoClient

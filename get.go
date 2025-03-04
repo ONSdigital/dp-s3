@@ -122,7 +122,7 @@ func (cli *Client) GetWithPSK(ctx context.Context, key string, psk []byte) (io.R
 	return result.Body, result.ContentLength, nil
 }
 
-// Head returns a HeadObjectOutput containing an object metadata obtained from ah HTTP HEAD call
+// Head returns a HeadObjectOutput containing an object metadata obtained from a HTTP HEAD call
 func (cli *Client) Head(ctx context.Context, key string) (*s3.HeadObjectOutput, error) {
 	result, err := cli.sdkClient.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: &cli.bucketName,

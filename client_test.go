@@ -14,7 +14,6 @@ import (
 )
 
 func TestPutWithPSK(t *testing.T) {
-
 	Convey("Given an S3 client configured with a bucket, region and psk", t, func() {
 		ctx := context.Background()
 

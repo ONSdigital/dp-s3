@@ -1,7 +1,7 @@
 // file: upload.go
 //
 // Contains methods to efficiently upload files to S3
-// by using the high level SDK s3manager uploader methods,
+// by using the high level SDK manager uploader methods,
 // which automatically split large objects in chunks and uploads them concurrently.
 //
 // Requires "s3:PutObject" action allowed by IAM policy for the bucket,
@@ -38,7 +38,7 @@ func (cli *Client) PutWithPSK(ctx context.Context, key *string, reader *bytes.Re
 	return nil
 }
 
-// Upload uploads a file to S3 using the AWS s3Manager, which will automatically split up large objects and upload them concurrently.
+// Upload uploads a file to S3 using the AWS Manager, which will automatically split up large objects and upload them concurrently.
 func (cli *Client) Upload(ctx context.Context, input *s3.PutObjectInput, options ...func(*manager.Uploader)) (*manager.UploadOutput, error) {
 	logData, err := cli.ValidateUploadInput(input)
 	if err != nil {
