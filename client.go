@@ -71,12 +71,12 @@ func NewClientWithCredentials(ctx context.Context, region string, bucketName str
 }
 
 // NewClientWithConfig creates a new S3 Client configured for the given bucket name, using the provided config and region within it.
-func NewClientWithConfig(bucketName string, cfg aws.Config) *Client {
+func NewClientWithConfig(bucketName string, cfg aws.Config, optFns ...func(*s3.Options)) *Client {
 	// Get region for the Config
 	region := cfg.Region
 
 	// Create AWS-SDK-S3 client with the config
-	sdkClient := s3.NewFromConfig(cfg)
+	sdkClient := s3.NewFromConfig(cfg, optFns...)
 
 	// Create an AWS-SDK-S3 Uploader.
 	sdkUploader := manager.NewUploader(sdkClient)

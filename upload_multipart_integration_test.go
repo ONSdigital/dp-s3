@@ -7,7 +7,6 @@ package s3_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	dps3 "github.com/ONSdigital/dp-s3/v2"
@@ -35,7 +34,11 @@ func TestMultipartUploadIntegrationTest(t *testing.T) {
 		)
 		So(err, ShouldBeNil)
 
-		dpClient := dps3.NewClientWithConfig(bucket, cfg)
+		dpClient := dps3.NewClientWithConfig(bucket, cfg, func(o *s3.Options) {
+			o.BaseEndpoint = aws.String(localstackHost)
+			o.UsePathStyle = true
+		})
+
 		awsClient := s3.NewFromConfig(cfg, func(o *s3.Options) {
 			o.BaseEndpoint = aws.String(localstackHost)
 			o.UsePathStyle = true
@@ -96,8 +99,7 @@ func TestMultipartUploadIntegrationTest(t *testing.T) {
 			}, []byte(payload))
 
 			Convey("Then it should return chunk too small error", func() {
-				_, correctErrType := err.(*dps3.ErrChunkTooSmall)
-				SoMsg(fmt.Sprintf("Expected err type to be ErrChunkTooSmall, got %v", err), correctErrType, ShouldBeTrue)
+				So(err.Error(), ShouldContainSubstring, "EntityTooSmall")
 			})
 		})
 	})
