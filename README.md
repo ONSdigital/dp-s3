@@ -37,7 +37,7 @@ The functionality implemented by this library requires that the user has some pe
 
 - Multipart upload functionality requires allowed `s3:PutObject`, `s3:GetObject`, `s3:AbortMultipartUpload`, `s3:ListMultipartUploadParts` for objects under the hierarchy you want to allow (e.g. `my-bucket/prefix/*`); and `s3:ListBucketMultipartUploads` for the bucket (e.g. `my-bucket`).
 
-Please, see our [terraform repository](https://github.com/ONSdigital/dp-setup/tree/develop/terraform) for more information.
+Please, see our [terraform repository](https://github.com/ONSdigital/dp-setup/tree/awsb/terraform) for more information.
 
 ### S3 Client Usage
 
@@ -45,25 +45,33 @@ The S3 client wraps the necessary AWS SDK structs and offers functionality to ch
 
 The client is configured with a specific bucket and region, note that the bucket needs to be created in the region that you provide in order to access it.
 
-There are 2 available constructors:
+There are 3 available constructors:
 
-- Constructor without AWS session (will create a new session):
-
-```golang
-import dps3 "github.com/ONSdigital/dp-s3/v2"
-
-s3cli := dps3.NewClient(region, bucket)
-```
-
-- Constructor with AWS session (will reuse the provided session):
+- Constructor without AWS config (will create a new config):
 
 ```golang
 import dps3 "github.com/ONSdigital/dp-s3/v2"
 
-s3cli := dps3.NewClientWithSession(bucket, awsSession)
+s3cli := dps3.NewClient(ctx, region, bucketName)
 ```
 
-It is recommended to create a single AWS session in your service and reuse it if you need other clients. The client offers a session getter: `s3cli.Session()`
+- Constructor with AWS config (will reuse the provided config):
+
+```golang
+import dps3 "github.com/ONSdigital/dp-s3/v2"
+
+s3cli := dps3.NewClientWithConfig(bucketName, cfg, optFns ...func(*s3.Options))
+```
+
+- Constructor without AWS config but with credentials (will create a new config)
+
+```golang
+import dps3 "github.com/ONSdigital/dp-s3/v2"
+
+s3cli := dps3.NewClientWithCredentials(ctx, region, bucketName, awsAccessKey, awsSecretKey)
+```
+
+It is recommended to create a single AWS config in your service and reuse it if you need other clients. The client offers a config getter: `s3cli.Config()`
 
 A bucket name getter is also offered for convenience: `s3cli.BucketName()`
 
@@ -93,20 +101,21 @@ out, err := s3cli.Head("my/s3/file")
 
 #### Upload
 
-The client also wraps the AWS SDK s3manager uploader, which is a high level client to upload files which automatically splits large files into chunks and uploads them concurrently.
+The client also wraps the AWS SDK manager uploader, which is a high level client to upload files which automatically splits large files into chunks and uploads them concurrently.
 
-This offers functionality to put objects in S3 in a single func call, hiding the low level details of chunking. More information [here](https://docs.aws.amazon.com/sdk-for-go/api/service/s3/s3manager/#Uploader)
+This offers functionality to put objects in S3 in a single func call, hiding the low level details of chunking. More information [here](https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/feature/s3/manager)
 
-Functions that have the suffix `WithPSK` allow you to provide a psk for encryption and functions with the suffix `WithContext` allow you to pass a context, which may be cancelled to abort the operation. For example:
+Functions that have the suffix `WithPSK` allow you to provide a psk for encryption. For example:
 
 - Upload an un-encrypted object to S3
 
 ```golang
 result, err := s3cli.Upload(
-    &s3manager.UploadInput{
-		Body:   file.Reader,
-		Key:    &filename,
-	},
+    ctx,
+    &s3.PutObjectInput{
+        Body:   file.Reader,
+        Key:    &filename,
+    },
 )
 ```
 
@@ -114,26 +123,15 @@ result, err := s3cli.Upload(
 
 ```golang
 result, err := s3cli.UploadWithPSK(
-    &s3manager.UploadInput{
-		Body:   file.Reader,
-		Key:    &filename,
-	},
-    psk,
-)
-```
-
-- Upload an encrypted object to S3, passing a context:
-
-```golang
-result, err := s3cli.UploadWithPSKAndContext(
     ctx,
-    &s3manager.UploadInput{
-		Body:   file.Reader,
-		Key:    &filename,
-	},
+    &s3.PutObjectInput{
+        Body:   file.Reader,
+        Key:    &filename,
+    },
     psk,
 )
 ```
+
 #### Multipart Upload
 
 You may use the low-level AWS SDK s3 client [multipart upload](./upload_multipart.go) methods
