@@ -1,6 +1,8 @@
 module github.com/ONSdigital/dp-s3/v2
 
-go 1.23
+go 1.23.0
+
+toolchain go1.23.6
 
 retract (
 	v2.1.0-beta.2 // Contains retractions only
@@ -25,7 +27,7 @@ require (
 	go.opentelemetry.io/otel v1.21.0 // indirect
 	go.opentelemetry.io/otel/metric v1.21.0 // indirect
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 )
 
 require (
