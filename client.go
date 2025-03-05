@@ -35,7 +35,7 @@ type Client struct {
 
 // NewClient creates a new S3 Client configured for the given region and bucket name.
 // Note: This function will create a new config, if you already have a config, please use NewUploader instead
-// Any error establishing the AWS session will be returned
+// Any error establishing the AWS config will be returned
 func NewClient(ctx context.Context, region string, bucketName string) (*Client, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
@@ -52,7 +52,7 @@ func NewClient(ctx context.Context, region string, bucketName string) (*Client, 
 
 // NewClientWithCredentials creates a new S3 Client configured for the given region and bucket name with creds.
 // Note: This function will create a new config, if you already have a config, please use NewUploader instead
-// Any error establishing the AWS session will be returned
+// Any error establishing the AWS config will be returned
 func NewClientWithCredentials(ctx context.Context, region string, bucketName string, awsAccessKey string, awsSecretKey string) (*Client, error) {
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion(region),
