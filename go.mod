@@ -1,6 +1,6 @@
 module github.com/ONSdigital/dp-s3/v2
 
-go 1.23.0
+go 1.24
 
 retract (
 	v2.1.0-beta.2 // Contains retractions only
