@@ -5,28 +5,28 @@ package mock
 
 import (
 	"context"
-	v2 "github.com/ONSdigital/dp-s3/v2"
+	v3 "github.com/ONSdigital/dp-s3/v3"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	s3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"sync"
 )
 
-// Ensure, that S3SDKUploaderMock does implement v2.S3SDKUploader.
+// Ensure, that S3SDKUploaderMock does implement v3.S3SDKUploader.
 // If this is not the case, regenerate this file with moq.
-var _ v2.S3SDKUploader = &S3SDKUploaderMock{}
+var _ v3.S3SDKUploader = &S3SDKUploaderMock{}
 
-// S3SDKUploaderMock is a mock implementation of v2.S3SDKUploader.
+// S3SDKUploaderMock is a mock implementation of v3.S3SDKUploader.
 //
 //	func TestSomethingThatUsesS3SDKUploader(t *testing.T) {
 //
-//		// make and configure a mocked v2.S3SDKUploader
+//		// make and configure a mocked v3.S3SDKUploader
 //		mockedS3SDKUploader := &S3SDKUploaderMock{
 //			UploadFunc: func(ctx context.Context, in *s3.PutObjectInput, options ...func(*manager.Uploader)) (*manager.UploadOutput, error) {
 //				panic("mock out the Upload method")
 //			},
 //		}
 //
-//		// use mockedS3SDKUploader in code that requires v2.S3SDKUploader
+//		// use mockedS3SDKUploader in code that requires v3.S3SDKUploader
 //		// and then make assertions.
 //
 //	}

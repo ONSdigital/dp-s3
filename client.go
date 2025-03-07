@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ONSdigital/dp-s3/v2/crypto"
+	"github.com/ONSdigital/dp-s3/v3/crypto"
 	"github.com/ONSdigital/log.go/v2/log"
 
 	"github.com/aws/aws-sdk-go-v2/aws"

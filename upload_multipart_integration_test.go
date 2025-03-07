@@ -9,7 +9,7 @@ import (
 	"context"
 	"testing"
 
-	dps3 "github.com/ONSdigital/dp-s3/v2"
+	dps3 "github.com/ONSdigital/dp-s3/v3"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"

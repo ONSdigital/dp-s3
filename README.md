@@ -50,7 +50,7 @@ There are 3 available constructors:
 - Constructor without AWS config (will create a new config):
 
 ```golang
-import dps3 "github.com/ONSdigital/dp-s3/v2"
+import dps3 "github.com/ONSdigital/dp-s3/v3"
 
 s3cli := dps3.NewClient(ctx, region, bucketName)
 ```
@@ -58,7 +58,7 @@ s3cli := dps3.NewClient(ctx, region, bucketName)
 - Constructor with AWS config (will reuse the provided config):
 
 ```golang
-import dps3 "github.com/ONSdigital/dp-s3/v2"
+import dps3 "github.com/ONSdigital/dp-s3/v3"
 
 s3cli := dps3.NewClientWithConfig(bucketName, cfg, optFns ...func(*s3.Options))
 ```
@@ -66,7 +66,7 @@ s3cli := dps3.NewClientWithConfig(bucketName, cfg, optFns ...func(*s3.Options))
 - Constructor without AWS config but with credentials (will create a new config)
 
 ```golang
-import dps3 "github.com/ONSdigital/dp-s3/v2"
+import dps3 "github.com/ONSdigital/dp-s3/v3"
 
 s3cli := dps3.NewClientWithCredentials(ctx, region, bucketName, awsAccessKey, awsSecretKey)
 ```

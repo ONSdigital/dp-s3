@@ -5,28 +5,28 @@ package mock
 
 import (
 	"context"
-	v2 "github.com/ONSdigital/dp-s3/v2"
+	v3 "github.com/ONSdigital/dp-s3/v3"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	s3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"sync"
 )
 
-// Ensure, that S3CryptoUploaderMock does implement v2.S3CryptoUploader.
+// Ensure, that S3CryptoUploaderMock does implement v3.S3CryptoUploader.
 // If this is not the case, regenerate this file with moq.
-var _ v2.S3CryptoUploader = &S3CryptoUploaderMock{}
+var _ v3.S3CryptoUploader = &S3CryptoUploaderMock{}
 
-// S3CryptoUploaderMock is a mock implementation of v2.S3CryptoUploader.
+// S3CryptoUploaderMock is a mock implementation of v3.S3CryptoUploader.
 //
 //	func TestSomethingThatUsesS3CryptoUploader(t *testing.T) {
 //
-//		// make and configure a mocked v2.S3CryptoUploader
+//		// make and configure a mocked v3.S3CryptoUploader
 //		mockedS3CryptoUploader := &S3CryptoUploaderMock{
 //			UploadWithPSKFunc: func(ctx context.Context, in *s3.PutObjectInput, psk []byte) (*manager.UploadOutput, error) {
 //				panic("mock out the UploadWithPSK method")
 //			},
 //		}
 //
-//		// use mockedS3CryptoUploader in code that requires v2.S3CryptoUploader
+//		// use mockedS3CryptoUploader in code that requires v3.S3CryptoUploader
 //		// and then make assertions.
 //
 //	}

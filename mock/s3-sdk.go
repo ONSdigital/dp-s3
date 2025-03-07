@@ -5,20 +5,20 @@ package mock
 
 import (
 	"context"
-	v2 "github.com/ONSdigital/dp-s3/v2"
+	v3 "github.com/ONSdigital/dp-s3/v3"
 	s3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"sync"
 )
 
-// Ensure, that S3SDKClientMock does implement v2.S3SDKClient.
+// Ensure, that S3SDKClientMock does implement v3.S3SDKClient.
 // If this is not the case, regenerate this file with moq.
-var _ v2.S3SDKClient = &S3SDKClientMock{}
+var _ v3.S3SDKClient = &S3SDKClientMock{}
 
-// S3SDKClientMock is a mock implementation of v2.S3SDKClient.
+// S3SDKClientMock is a mock implementation of v3.S3SDKClient.
 //
 //	func TestSomethingThatUsesS3SDKClient(t *testing.T) {
 //
-//		// make and configure a mocked v2.S3SDKClient
+//		// make and configure a mocked v3.S3SDKClient
 //		mockedS3SDKClient := &S3SDKClientMock{
 //			CompleteMultipartUploadFunc: func(ctx context.Context, in *s3.CompleteMultipartUploadInput, optFns ...func(*s3.Options)) (*s3.CompleteMultipartUploadOutput, error) {
 //				panic("mock out the CompleteMultipartUpload method")
@@ -55,7 +55,7 @@ var _ v2.S3SDKClient = &S3SDKClientMock{}
 //			},
 //		}
 //
-//		// use mockedS3SDKClient in code that requires v2.S3SDKClient
+//		// use mockedS3SDKClient in code that requires v3.S3SDKClient
 //		// and then make assertions.
 //
 //	}

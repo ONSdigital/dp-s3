@@ -5,20 +5,20 @@ package mock
 
 import (
 	"context"
-	v2 "github.com/ONSdigital/dp-s3/v2"
+	v3 "github.com/ONSdigital/dp-s3/v3"
 	s3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"sync"
 )
 
-// Ensure, that S3CryptoClientMock does implement v2.S3CryptoClient.
+// Ensure, that S3CryptoClientMock does implement v3.S3CryptoClient.
 // If this is not the case, regenerate this file with moq.
-var _ v2.S3CryptoClient = &S3CryptoClientMock{}
+var _ v3.S3CryptoClient = &S3CryptoClientMock{}
 
-// S3CryptoClientMock is a mock implementation of v2.S3CryptoClient.
+// S3CryptoClientMock is a mock implementation of v3.S3CryptoClient.
 //
 //	func TestSomethingThatUsesS3CryptoClient(t *testing.T) {
 //
-//		// make and configure a mocked v2.S3CryptoClient
+//		// make and configure a mocked v3.S3CryptoClient
 //		mockedS3CryptoClient := &S3CryptoClientMock{
 //			GetObjectWithPSKFunc: func(ctx context.Context, in *s3.GetObjectInput, psk []byte) (*s3.GetObjectOutput, error) {
 //				panic("mock out the GetObjectWithPSK method")
@@ -31,7 +31,7 @@ var _ v2.S3CryptoClient = &S3CryptoClientMock{}
 //			},
 //		}
 //
-//		// use mockedS3CryptoClient in code that requires v2.S3CryptoClient
+//		// use mockedS3CryptoClient in code that requires v3.S3CryptoClient
 //		// and then make assertions.
 //
 //	}
