@@ -198,6 +198,57 @@ After creating an S3 client as described above, call s3 health checker with `s3c
 }
 ```
 
+## Migrating from v2 to v3
+
+Upgrading to V3 will require you to upgrade `aws-sdk-go` to `aws-sdk-go-v2` within your service.
+
+Amazon have released a [migration guide](https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/welcome.html) to help with this upgrade
+
+### Common issues:
+
+Previously within your service you would have a `session` defined and then a client made with this session:
+
+```golang
+import (
+    dps3 "github.com/ONSdigital/dp-s3/v2"
+    "github.com/aws/aws-sdk-go/aws"
+    "github.com/aws/aws-sdk-go/aws/credentials"
+    "github.com/aws/aws-sdk-go/aws/session"
+)
+
+s, err := session.NewSession(&aws.Config{
+    Endpoint:         aws.String(localstackHost),
+    Region:           aws.String(awsRegion),
+    S3ForcePathStyle: aws.Bool(true),
+    Credentials:      credentials.NewStaticCredentials("test", "test", ""),
+})
+
+s3Client = dps3.NewClientWithSession(bucketName, s)
+```
+
+However using `aws-sdk-go-v2` and `dp-s3/v3`, you will need to define a config and then use this to create a client:
+
+```golang
+import (
+    dps3 "github.com/ONSdigital/dp-s3/v3"
+    "github.com/aws/aws-sdk-go-v2/aws"
+    "github.com/aws/aws-sdk-go-v2/config"
+    "github.com/aws/aws-sdk-go-v2/credentials"
+    "github.com/aws/aws-sdk-go-v2/service/s3"
+)
+
+config, err := config.LoadDefaultConfig(ctx,
+    config.WithRegion(awsRegion),
+    config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("test","test","")),
+)
+
+s3Client = dps3.NewClientWithConfig(bucketName, config, func(o *s3.Options){
+    o.BaseEndpoint = aws.String(localstackHost)
+    o.UsePathStyle = true
+})
+```
+
+
 ## Contributing
 
 See [CONTRIBUTING](CONTRIBUTING.md) for details.
