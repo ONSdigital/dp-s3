@@ -20,5 +20,6 @@ test-integration:
 	docker-compose down
 	docker-compose up -d
 	sleep 10
+	./aws/buckets.sh
 	go test -count=1 -race -cover -tags="integration" ./...
 	docker-compose down
