@@ -82,10 +82,10 @@ func NewClientWithConfig(bucketName string, cfg aws.Config, optFns ...func(*s3.O
 	sdkUploader := manager.NewUploader(sdkClient)
 
 	// Create crypto client, which allows user to provide a psk
-	cryptoClient := crypto.New(cfg, &crypto.Config{HasUserDefinedPSK: true})
+	cryptoClient := crypto.New(cfg, &crypto.Config{HasUserDefinedPSK: true}, optFns...)
 
 	// Create crypto uploader, which allows user to provide a psk
-	cryptoUploader := crypto.NewUploader(cfg, &crypto.Config{HasUserDefinedPSK: true})
+	cryptoUploader := crypto.NewUploader(cfg, &crypto.Config{HasUserDefinedPSK: true}, optFns...)
 
 	return InstantiateClient(sdkClient, cryptoClient, sdkUploader, cryptoUploader, bucketName, region, cfg)
 }

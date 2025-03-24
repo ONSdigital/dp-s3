@@ -167,11 +167,11 @@ type Uploader struct {
 
 // New supports the creation of an Encryption supported client
 // with a given aws config and rsa Private Key.
-func New(awsConfig aws.Config, cfg *Config) *CryptoClient {
+func New(awsConfig aws.Config, cfg *Config, optFns ...func(*s3.Options)) *CryptoClient {
 	if cfg.MultipartChunkSize == 0 {
 		cfg.MultipartChunkSize = maxChunkSize
 	}
-	cc := &CryptoClient{s3.NewFromConfig(awsConfig), cfg.PrivateKey, cfg.PublicKey, cfg.HasUserDefinedPSK, cfg.MultipartChunkSize}
+	cc := &CryptoClient{s3.NewFromConfig(awsConfig, optFns...), cfg.PrivateKey, cfg.PublicKey, cfg.HasUserDefinedPSK, cfg.MultipartChunkSize}
 
 	if cc.privKey != nil {
 		cc.publicKey = &cc.privKey.PublicKey
@@ -181,8 +181,8 @@ func New(awsConfig aws.Config, cfg *Config) *CryptoClient {
 }
 
 // NewUploader creates a new instance of the crypto Uploader
-func NewUploader(awsConfig aws.Config, cfg *Config) *Uploader {
-	cc := &CryptoClient{s3.NewFromConfig(awsConfig), cfg.PrivateKey, cfg.PublicKey, cfg.HasUserDefinedPSK, cfg.MultipartChunkSize}
+func NewUploader(awsConfig aws.Config, cfg *Config, optFns ...func(*s3.Options)) *Uploader {
+	cc := &CryptoClient{s3.NewFromConfig(awsConfig, optFns...), cfg.PrivateKey, cfg.PublicKey, cfg.HasUserDefinedPSK, cfg.MultipartChunkSize}
 
 	if cc.privKey != nil {
 		cc.publicKey = &cc.privKey.PublicKey
@@ -191,7 +191,7 @@ func NewUploader(awsConfig aws.Config, cfg *Config) *Uploader {
 	return &Uploader{
 		CryptoClient: cc,
 
-		s3uploader: *manager.NewUploader(s3.NewFromConfig(awsConfig)),
+		s3uploader: *manager.NewUploader(s3.NewFromConfig(awsConfig, optFns...)),
 	}
 }
 
