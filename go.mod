@@ -2,6 +2,10 @@ module github.com/ONSdigital/dp-s3/v3
 
 go 1.24
 
+retract (
+	v3.0.0 // s3Client base endpoint and path issues when running locally
+)
+
 require (
 	github.com/ONSdigital/dp-healthcheck v1.6.3
 	github.com/ONSdigital/log.go/v2 v2.4.3
